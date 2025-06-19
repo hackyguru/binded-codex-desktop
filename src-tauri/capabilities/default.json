@@ -8,6 +8,8 @@
     "core:window:default", 
     "core:window:allow-start-dragging",
     "opener:default",
+    "upload:allow-download",
+    "upload:default",
     "dialog:default",
     {
       "identifier": "shell:allow-execute",

@@ -4,4 +4,6 @@ export { default as DataDirectorySection } from './DataDirectorySection';
 export { default as PortConfigurationSection } from './PortConfigurationSection';
 export { default as StatusIndicator } from './StatusIndicator';
 export { default as ControlButtons } from './ControlButtons';
-export { default as StatusLog } from './StatusLog'; 
+export { default as StatusLog } from './StatusLog';
+export { default as FileUpload } from './FileUpload';
+export { default as Install } from './Install'; 

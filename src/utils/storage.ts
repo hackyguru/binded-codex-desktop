@@ -35,5 +35,17 @@ export const storageUtils = {
 
   setApiPort: (port: string): void => {
     localStorage.setItem(LOCAL_STORAGE_KEYS.API_PORT, port);
+  },
+
+  getDownloadLocation: (): string | null => {
+    return localStorage.getItem(LOCAL_STORAGE_KEYS.DOWNLOAD_LOCATION);
+  },
+
+  setDownloadLocation: (location: string): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.DOWNLOAD_LOCATION, location);
+  },
+
+  removeDownloadLocation: (): void => {
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.DOWNLOAD_LOCATION);
   }
 }; 
