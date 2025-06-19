@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from '@tauri-apps/plugin-dialog';
@@ -10,17 +10,68 @@ function App() {
   const [name, setName] = useState("");
   const [codexOutput, setCodexOutput] = useState("");
   const [isCodexRunning, setIsCodexRunning] = useState(false);
+  const [codexChild, setCodexChild] = useState<any>(null);
+  const isMountedRef = useRef(true);
+  const processCheckIntervalRef = useRef<number | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const killExistingCodexProcesses = async () => {
+    try {
+      setCodexOutput("Killing existing Codex processes...");
+      
+      // Use Tauri invoke to run system commands
+      try {
+        await invoke('execute_command', { 
+          command: 'pkill', 
+          args: ['-f', 'codexdesktop'] 
+        });
+      } catch (error) {
+        // pkill might not be available, try killall
+        try {
+          await invoke('execute_command', { 
+            command: 'killall', 
+            args: ['codexdesktop'] 
+          });
+        } catch (killallError) {
+          // Both failed, that's okay
+          console.log("No existing Codex processes found or already killed");
+        }
+      }
+      
+      setCodexOutput("Existing Codex processes killed successfully.");
+      
+      // Wait a moment for processes to fully terminate
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+    } catch (error) {
+      // It's okay if no processes were found to kill
+      console.log("No existing Codex processes found or already killed");
+    }
+  };
+
+  const checkProcessStatus = async () => {
+    if (codexChild) {
+      try {
+        // Try to kill the process with signal 0 (just check if it's alive)
+        await codexChild.kill(0);
+        // If we get here, process is still running
+      } catch (error) {
+        // Process is no longer running
+        if (isMountedRef.current) {
+          setCodexChild(null);
+          setCodexOutput("Codex process is no longer running");
+        }
+      }
+    }
+  };
 
   const handleRunCodex = async () => {
     setIsCodexRunning(true);
     setCodexOutput("Starting Codex...");
 
     try {
+      // First kill any existing processes
+      await killExistingCodexProcesses();
+
       const args = [
         "--data-dir=/Users/guru/Desktop/datadirectory",
         "--disc-port=8090",
@@ -30,20 +81,148 @@ function App() {
         "--bootstrap-node=spr:CiUIAhIhAiJvIcA_ZwPZ9ugVKDbmqwhJZaig5zKyLiuaicRcCGqLEgIDARo8CicAJQgCEiECIm8hwD9nA9n26BUoNuarCEllqKDnMrIuK5qJxFwIaosQ3d6esAYaCwoJBJ_f8zKRAnU6KkYwRAIgM0MvWNJL296kJ9gWvfatfmVvT-A7O2s8Mxp8l9c8EW0CIC-h-H-jBVSgFjg3Eny2u33qF7BDnWFzo7fGfZ7_qc9P"
       ];
 
-      setCodexOutput(`Running: codexdesktop ${args.join(' ')}`);
+      setCodexOutput(`Starting: codexdesktop ${args.join(' ')}`);
 
       const command = Command.sidecar('binaries/codexdesktop', args);
-      const output = await command.execute();
-
-      setCodexOutput(
-        `Codex executed!\nExit code: ${output.code}\nOutput: ${output.stdout}\nError: ${output.stderr}`
-      );
+      
+      // Try to execute first to see if there are any immediate errors
+      try {
+        const result = await command.execute();
+        setCodexOutput(`Codex executed and exited:\nExit code: ${result.code}\nOutput: ${result.stdout}\nError: ${result.stderr}`);
+        setIsCodexRunning(false);
+        return;
+      } catch (executeError) {
+        // If execute fails, try spawn instead
+        setCodexOutput(`Execute failed, trying spawn: ${executeError}`);
+      }
+      
+      const child = await command.spawn();
+      
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setCodexChild(child);
+        setCodexOutput("Codex started successfully and running in background...");
+        
+        // Start periodic process status check
+        processCheckIntervalRef.current = setInterval(checkProcessStatus, 5000); // Check every 5 seconds
+      } else {
+        // Component was unmounted, kill the process
+        await child.kill();
+      }
     } catch (error) {
-      setCodexOutput(`Error running Codex: ${error}`);
+      if (isMountedRef.current) {
+        setCodexOutput(`Error starting Codex: ${error}`);
+      }
     } finally {
-      setIsCodexRunning(false);
+      if (isMountedRef.current) {
+        setIsCodexRunning(false);
+      }
     }
   };
+
+  const handleStopCodex = async () => {
+    if (codexChild) {
+      try {
+        await codexChild.kill();
+        setCodexChild(null);
+        setCodexOutput("Codex process stopped manually.");
+        
+        // Clear the process check interval
+        if (processCheckIntervalRef.current) {
+          clearInterval(processCheckIntervalRef.current);
+          processCheckIntervalRef.current = null;
+        }
+      } catch (error) {
+        setCodexOutput(`Error stopping Codex: ${error}`);
+      }
+    }
+  };
+
+  const handleKillAllCodex = async () => {
+    try {
+      setCodexOutput("Killing all Codex processes...");
+      await killExistingCodexProcesses();
+      
+      // Also kill the current child process if it exists
+      if (codexChild) {
+        await codexChild.kill();
+        setCodexChild(null);
+        
+        // Clear the process check interval
+        if (processCheckIntervalRef.current) {
+          clearInterval(processCheckIntervalRef.current);
+          processCheckIntervalRef.current = null;
+        }
+      }
+      
+      setCodexOutput("All Codex processes killed successfully.");
+    } catch (error) {
+      setCodexOutput(`Error killing all Codex processes: ${error}`);
+    }
+  };
+
+  const checkExistingProcesses = async () => {
+    try {
+      setCodexOutput("Checking for existing Codex processes...");
+      
+      // Use ps to check for existing codexdesktop processes
+      const result = await invoke('execute_command', { 
+        command: 'ps', 
+        args: ['aux'] 
+      }) as string;
+      
+      if (result.includes('codexdesktop')) {
+        setCodexOutput("Found existing Codex processes. Use 'Kill All Codex' to stop them.");
+      } else {
+        setCodexOutput("No existing Codex processes found.");
+      }
+    } catch (error) {
+      setCodexOutput(`Error checking for existing processes: ${error}`);
+    }
+  };
+
+  // Auto-start codex when app loads
+  useEffect(() => {
+    checkExistingProcesses();
+    handleRunCodex();
+  }, []);
+
+  // Cleanup when app is closed
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (codexChild) {
+        try {
+          await codexChild.kill();
+          console.log('Codex process terminated');
+        } catch (error) {
+          console.error('Error terminating codex process:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Clear the process check interval
+      if (processCheckIntervalRef.current) {
+        clearInterval(processCheckIntervalRef.current);
+        processCheckIntervalRef.current = null;
+      }
+      
+      // Also try to kill the process when component unmounts
+      if (codexChild) {
+        codexChild.kill().catch(console.error);
+      }
+    };
+  }, [codexChild]);
+
+  async function greet() {
+    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+    setGreetMsg(await invoke("greet", { name }));
+  }
 
   return (
     <main className="container">
@@ -65,20 +244,42 @@ function App() {
       <div className="codex-section">
         <h2>Codex Configuration</h2>
         
+        <div className="status-indicator">
+          <span className={`status-dot ${codexChild ? 'running' : 'stopped'}`}></span>
+          <span className="status-text">
+            {codexChild ? 'Codex is running' : 'Codex is stopped'}
+          </span>
+        </div>
+        
         <div className="row">
           <button 
             onClick={handleRunCodex}
-            disabled={isCodexRunning}
+            disabled={isCodexRunning || codexChild !== null}
             className="codex-button"
           >
-            {isCodexRunning ? 'Running Codex...' : 'Run Codex'}
+            {isCodexRunning ? 'Starting Codex...' : 'Start Codex'}
+          </button>
+          
+          <button 
+            onClick={handleStopCodex}
+            disabled={codexChild === null}
+            className="codex-button stop"
+          >
+            Stop Codex
+          </button>
+          
+          <button 
+            onClick={handleKillAllCodex}
+            className="codex-button kill-all"
+          >
+            Kill All Codex
           </button>
         </div>
       </div>
 
       {codexOutput && (
         <div className="codex-output">
-          <h3>Codex Output:</h3>
+          <h3>Codex Status:</h3>
           <pre>{codexOutput}</pre>
         </div>
       )}
