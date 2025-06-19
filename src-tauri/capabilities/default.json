@@ -12,7 +12,27 @@
       "allow": [
         {
           "name": "binaries/codexdesktop",
-          "sidecar": true
+          "sidecar": true,
+          "args": [
+            {
+              "validator": "^--data-dir=\\S+$"
+            },
+            {
+              "validator": "^--disc-port=\\d+$"
+            },
+            {
+              "validator": "^--listen-addrs=\\S+$"
+            },
+            {
+              "validator": "^--nat=\\S+$"
+            },
+            {
+              "validator": "^--api-cors-origin=\\S+$"
+            },
+            {
+              "validator": "^--bootstrap-node=\\S+$"
+            }
+          ]
         }
       ]
     },
