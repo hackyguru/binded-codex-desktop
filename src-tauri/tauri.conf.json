@@ -10,14 +10,6 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "codex-desktop",
-        "width": 800,
-        "height": 600,
-        "titleBarStyle": "Transparent"
-        }
-    ],
     "security": {
       "csp": null
     }

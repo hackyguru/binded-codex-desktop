@@ -297,7 +297,7 @@ function App() {
   }, [codexChild]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
+    <main className="h-screen bg-black text-white p-6 overflow-y-auto">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
