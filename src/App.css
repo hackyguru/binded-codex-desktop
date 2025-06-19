@@ -210,24 +210,13 @@ button {
   box-shadow: none;
 }
 
-.codex-button.stop {
+.codex-button.kill {
   background-color: #dc3545;
   margin-left: 10px;
 }
 
-.codex-button.stop:hover:not(:disabled) {
+.codex-button.kill:hover:not(:disabled) {
   background-color: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.codex-button.kill-all {
-  background-color: #fd7e14;
-  margin-left: 10px;
-}
-
-.codex-button.kill-all:hover:not(:disabled) {
-  background-color: #e55a00;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -314,4 +303,75 @@ button {
     border-color: #555;
     color: #f8f9fa;
   }
+}
+
+.directory-section {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.directory-section h3 {
+  margin-top: 0;
+  color: #495057;
+  font-size: 1.2em;
+}
+
+.directory-setup {
+  text-align: center;
+}
+
+.directory-setup p {
+  margin-bottom: 15px;
+  color: #6c757d;
+}
+
+.directory-info {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.selected-dir {
+  padding: 15px;
+  background-color: #e8f5e8;
+  border: 1px solid #4CAF50;
+  border-radius: 8px;
+}
+
+.selected-dir strong {
+  color: #2e7d32;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.selected-dir p {
+  margin: 0;
+  color: #2e7d32;
+  word-break: break-all;
+  font-family: monospace;
+  background-color: #ffffff;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #4CAF50;
+}
+
+.change-dir-button {
+  background-color: #6c757d;
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: flex-start;
+}
+
+.change-dir-button:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }

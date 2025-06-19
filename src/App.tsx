@@ -11,8 +11,48 @@ function App() {
   const [codexOutput, setCodexOutput] = useState("");
   const [isCodexRunning, setIsCodexRunning] = useState(false);
   const [codexChild, setCodexChild] = useState<any>(null);
+  const [dataDirectory, setDataDirectory] = useState<string>("");
+  const [isDirectorySet, setIsDirectorySet] = useState(false);
   const isMountedRef = useRef(true);
   const processCheckIntervalRef = useRef<number | null>(null);
+
+  // Initialize and load saved data directory
+  useEffect(() => {
+    const savedDir = localStorage.getItem('codexDataDirectory');
+    if (savedDir) {
+      setDataDirectory(savedDir);
+      setIsDirectorySet(true);
+    }
+  }, []);
+
+  const handleSelectDirectory = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        directory: true,
+        title: 'Select Codex Data Directory'
+      });
+      
+      if (selected && typeof selected === 'string') {
+        setDataDirectory(selected);
+        setIsDirectorySet(true);
+        
+        // Save to localStorage
+        localStorage.setItem('codexDataDirectory', selected);
+        
+        setCodexOutput(`Data directory set to: ${selected}`);
+      }
+    } catch (error) {
+      setCodexOutput(`Error selecting directory: ${error}`);
+    }
+  };
+
+  const handleChangeDirectory = async () => {
+    setIsDirectorySet(false);
+    setDataDirectory("");
+    localStorage.removeItem('codexDataDirectory');
+    setCodexOutput("Please select a new data directory.");
+  };
 
   const killExistingCodexProcesses = async () => {
     try {
@@ -65,6 +105,11 @@ function App() {
   };
 
   const handleRunCodex = async () => {
+    if (!isDirectorySet || !dataDirectory) {
+      setCodexOutput("Please select a data directory first.");
+      return;
+    }
+
     setIsCodexRunning(true);
     setCodexOutput("Starting Codex...");
 
@@ -73,7 +118,7 @@ function App() {
       await killExistingCodexProcesses();
 
       const args = [
-        "--data-dir=/Users/guru/Desktop/datadirectory",
+        `--data-dir=${dataDirectory}`,
         "--disc-port=8090",
         "--listen-addrs=/ip4/0.0.0.0/tcp/8070",
         "--nat=any",
@@ -120,27 +165,9 @@ function App() {
     }
   };
 
-  const handleStopCodex = async () => {
-    if (codexChild) {
-      try {
-        await codexChild.kill();
-        setCodexChild(null);
-        setCodexOutput("Codex process stopped manually.");
-        
-        // Clear the process check interval
-        if (processCheckIntervalRef.current) {
-          clearInterval(processCheckIntervalRef.current);
-          processCheckIntervalRef.current = null;
-        }
-      } catch (error) {
-        setCodexOutput(`Error stopping Codex: ${error}`);
-      }
-    }
-  };
-
-  const handleKillAllCodex = async () => {
+  const handleKillCodex = async () => {
     try {
-      setCodexOutput("Killing all Codex processes...");
+      setCodexOutput("Killing Codex process...");
       await killExistingCodexProcesses();
       
       // Also kill the current child process if it exists
@@ -155,9 +182,9 @@ function App() {
         }
       }
       
-      setCodexOutput("All Codex processes killed successfully.");
+      setCodexOutput("Codex process killed successfully.");
     } catch (error) {
-      setCodexOutput(`Error killing all Codex processes: ${error}`);
+      setCodexOutput(`Error killing Codex process: ${error}`);
     }
   };
 
@@ -172,7 +199,7 @@ function App() {
       }) as string;
       
       if (result.includes('codexdesktop')) {
-        setCodexOutput("Found existing Codex processes. Use 'Kill All Codex' to stop them.");
+        setCodexOutput("Found existing Codex processes. Use 'Kill Codex' to stop them.");
       } else {
         setCodexOutput("No existing Codex processes found.");
       }
@@ -184,8 +211,11 @@ function App() {
   // Auto-start codex when app loads
   useEffect(() => {
     checkExistingProcesses();
-    handleRunCodex();
-  }, []);
+    // Only auto-start if data directory is already set
+    if (isDirectorySet && dataDirectory) {
+      handleRunCodex();
+    }
+  }, [isDirectorySet, dataDirectory]);
 
   // Cleanup when app is closed
   useEffect(() => {
@@ -244,6 +274,34 @@ function App() {
       <div className="codex-section">
         <h2>Codex Configuration</h2>
         
+        <div className="directory-section">
+          <h3>Data Directory</h3>
+          {!isDirectorySet ? (
+            <div className="directory-setup">
+              <p>Please select a directory to store Codex data:</p>
+              <button 
+                onClick={handleSelectDirectory}
+                className="select-dir-button"
+              >
+                Select Data Directory
+              </button>
+            </div>
+          ) : (
+            <div className="directory-info">
+              <div className="selected-dir">
+                <strong>Current Directory:</strong>
+                <p>{dataDirectory}</p>
+              </div>
+              <button 
+                onClick={handleChangeDirectory}
+                className="change-dir-button"
+              >
+                Change Directory
+              </button>
+            </div>
+          )}
+        </div>
+        
         <div className="status-indicator">
           <span className={`status-dot ${codexChild ? 'running' : 'stopped'}`}></span>
           <span className="status-text">
@@ -254,25 +312,17 @@ function App() {
         <div className="row">
           <button 
             onClick={handleRunCodex}
-            disabled={isCodexRunning || codexChild !== null}
+            disabled={isCodexRunning || codexChild !== null || !isDirectorySet}
             className="codex-button"
           >
             {isCodexRunning ? 'Starting Codex...' : 'Start Codex'}
           </button>
           
           <button 
-            onClick={handleStopCodex}
-            disabled={codexChild === null}
-            className="codex-button stop"
+            onClick={handleKillCodex}
+            className="codex-button kill"
           >
-            Stop Codex
-          </button>
-          
-          <button 
-            onClick={handleKillAllCodex}
-            className="codex-button kill-all"
-          >
-            Kill All Codex
+            Kill Codex
           </button>
         </div>
       </div>
