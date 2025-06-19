@@ -296,153 +296,204 @@ function App() {
     };
   }, [codexChild]);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-2">
+            Codex Desktop
+          </h1>
+          <p className="text-gray-400 text-lg">
+            Decentralized storage network client
+          </p>
+        </div>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+        {/* Main Configuration Card */}
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl">
+          <h2 className="text-2xl font-semibold text-white mb-6 flex items-center">
+            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3 animate-pulse"></div>
+            Configuration
+          </h2>
 
-      <div className="codex-section">
-        <h2>Codex Configuration</h2>
-        
-        <div className="directory-section">
-          <h3>Data Directory</h3>
-          {!isDirectorySet ? (
-            <div className="directory-setup">
-              <p>Please select a directory to store Codex data:</p>
+          <div className="codex-section">
+            <h2>Codex Configuration</h2>
+            
+            {/* Data Directory Section */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+                </svg>
+                Data Directory
+              </h3>
+              
+              {!isDirectorySet ? (
+                <div className="bg-gray-700/50 border border-gray-600 rounded-xl p-6">
+                  <p className="text-gray-300 mb-4">Please select a directory to store Codex data:</p>
+                  <button 
+                    onClick={handleSelectDirectory}
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                  >
+                    <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Select Data Directory
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-6">
+                  <div className="mb-4">
+                    <div className="flex items-center mb-2">
+                      <svg className="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <strong className="text-green-400">Current Directory:</strong>
+                    </div>
+                    <p className="text-gray-200 font-mono text-sm bg-gray-800/50 p-3 rounded-lg break-all">{dataDirectory}</p>
+                  </div>
+                  <button 
+                    onClick={handleChangeDirectory}
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                  >
+                    Change Directory
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Port Configuration Section */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                </svg>
+                Port Configuration
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="discovery-port" className="block text-sm font-medium text-gray-300">
+                    Discovery Port
+                  </label>
+                  <input
+                    id="discovery-port"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={discoveryPort}
+                    onChange={(e) => handleDiscoveryPortChange(e.target.value)}
+                    placeholder="8090"
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="listening-port" className="block text-sm font-medium text-gray-300">
+                    Listening Port
+                  </label>
+                  <input
+                    id="listening-port"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={listeningPort}
+                    onChange={(e) => handleListeningPortChange(e.target.value)}
+                    placeholder="8070"
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="api-port" className="block text-sm font-medium text-gray-300">
+                    API Port
+                  </label>
+                  <input
+                    id="api-port"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={apiPort}
+                    onChange={(e) => handleApiPortChange(e.target.value)}
+                    placeholder="8080"
+                    className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Status Indicator */}
+            <div className="mb-8">
+              <div className="flex items-center justify-center bg-gray-700/30 border border-gray-600 rounded-xl p-4">
+                <div className={`w-4 h-4 rounded-full mr-3 ${codexChild ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className="text-lg font-medium text-white">
+                  {codexChild ? 'Codex is running' : 'Codex is stopped'}
+                </span>
+              </div>
+            </div>
+            
+            {/* Control Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
-                onClick={handleSelectDirectory}
-                className="select-dir-button"
+                onClick={handleRunCodex}
+                disabled={isCodexRunning || codexChild !== null || !isDirectorySet}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 disabled:transform-none disabled:shadow-none"
               >
-                Select Data Directory
+                {isCodexRunning ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Starting Codex...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Start Codex
+                  </div>
+                )}
+              </button>
+              
+              <button 
+                onClick={handleKillCodex}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+              >
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Kill Codex
+                </div>
               </button>
             </div>
-          ) : (
-            <div className="directory-info">
-              <div className="selected-dir">
-                <strong>Current Directory:</strong>
-                <p>{dataDirectory}</p>
-              </div>
-              <button 
-                onClick={handleChangeDirectory}
-                className="change-dir-button"
-              >
-                Change Directory
-              </button>
+          </div>
+
+          {codexOutput && (
+            <div className="codex-output">
+              <h3>Codex Status:</h3>
+              <pre>{codexOutput}</pre>
             </div>
           )}
         </div>
-        
-        <div className="port-section">
-          <h3>Port Configuration</h3>
-          <div className="port-inputs">
-            <div className="port-input-group">
-              <label htmlFor="discovery-port">Discovery Port:</label>
-              <input
-                id="discovery-port"
-                type="number"
-                min="1"
-                max="65535"
-                value={discoveryPort}
-                onChange={(e) => handleDiscoveryPortChange(e.target.value)}
-                placeholder="8090"
-                className="port-input"
-              />
-            </div>
-            
-            <div className="port-input-group">
-              <label htmlFor="listening-port">Listening Port:</label>
-              <input
-                id="listening-port"
-                type="number"
-                min="1"
-                max="65535"
-                value={listeningPort}
-                onChange={(e) => handleListeningPortChange(e.target.value)}
-                placeholder="8070"
-                className="port-input"
-              />
-            </div>
-            
-            <div className="port-input-group">
-              <label htmlFor="api-port">API Port:</label>
-              <input
-                id="api-port"
-                type="number"
-                min="1"
-                max="65535"
-                value={apiPort}
-                onChange={(e) => handleApiPortChange(e.target.value)}
-                placeholder="8080"
-                className="port-input"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="status-indicator">
-          <span className={`status-dot ${codexChild ? 'running' : 'stopped'}`}></span>
-          <span className="status-text">
-            {codexChild ? 'Codex is running' : 'Codex is stopped'}
-          </span>
-        </div>
-        
-        <div className="row">
-          <button 
-            onClick={handleRunCodex}
-            disabled={isCodexRunning || codexChild !== null || !isDirectorySet}
-            className="codex-button"
-          >
-            {isCodexRunning ? 'Starting Codex...' : 'Start Codex'}
-          </button>
-          
-          <button 
-            onClick={handleKillCodex}
-            className="codex-button kill"
-          >
-            Kill Codex
-          </button>
-        </div>
       </div>
 
+      {/* Status Output */}
       {codexOutput && (
-        <div className="codex-output">
-          <h3>Codex Status:</h3>
-          <pre>{codexOutput}</pre>
+        <div className="mt-8 max-w-4xl mx-auto">
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Status Log
+            </h3>
+            <pre className="bg-gray-900/50 border border-gray-600 rounded-lg p-4 text-sm text-gray-200 font-mono overflow-x-auto whitespace-pre-wrap">{codexOutput}</pre>
+          </div>
         </div>
       )}
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
     </main>
   );
 }
