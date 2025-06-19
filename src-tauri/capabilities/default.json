@@ -30,6 +30,9 @@
               "validator": "^--api-cors-origin=\\S+$"
             },
             {
+              "validator": "^--api-port=\\d+$"
+            },
+            {
               "validator": "^--bootstrap-node=\\S+$"
             }
           ]

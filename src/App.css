@@ -371,7 +371,77 @@ button {
 }
 
 .change-dir-button:hover {
-  background-color: #5a6268;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.port-section {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.port-section h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.port-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.port-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.port-input-group label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}
+
+.port-input {
+  width: 100%;
+  max-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.9em;
+  transition: border-color 0.2s ease;
+}
+
+.port-input:focus {
+  border-color: #24c8db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(36, 200, 219, 0.2);
+}
+
+.port-input:invalid {
+  border-color: #dc3545;
+}
+
+@media (min-width: 768px) {
+  .port-inputs {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  
+  .port-input-group {
+    flex: 1;
+  }
+  
+  .port-input {
+    max-width: none;
+  }
 }

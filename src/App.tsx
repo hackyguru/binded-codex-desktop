@@ -13,15 +13,34 @@ function App() {
   const [codexChild, setCodexChild] = useState<any>(null);
   const [dataDirectory, setDataDirectory] = useState<string>("");
   const [isDirectorySet, setIsDirectorySet] = useState(false);
+  const [discoveryPort, setDiscoveryPort] = useState<string>("8090");
+  const [listeningPort, setListeningPort] = useState<string>("8070");
+  const [apiPort, setApiPort] = useState<string>("8080");
   const isMountedRef = useRef(true);
   const processCheckIntervalRef = useRef<number | null>(null);
 
-  // Initialize and load saved data directory
+  // Initialize and load saved data directory and ports
   useEffect(() => {
     const savedDir = localStorage.getItem('codexDataDirectory');
+    const savedDiscoveryPort = localStorage.getItem('codexDiscoveryPort');
+    const savedListeningPort = localStorage.getItem('codexListeningPort');
+    const savedApiPort = localStorage.getItem('codexApiPort');
+    
     if (savedDir) {
       setDataDirectory(savedDir);
       setIsDirectorySet(true);
+    }
+    
+    if (savedDiscoveryPort) {
+      setDiscoveryPort(savedDiscoveryPort);
+    }
+    
+    if (savedListeningPort) {
+      setListeningPort(savedListeningPort);
+    }
+    
+    if (savedApiPort) {
+      setApiPort(savedApiPort);
     }
   }, []);
 
@@ -52,6 +71,33 @@ function App() {
     setDataDirectory("");
     localStorage.removeItem('codexDataDirectory');
     setCodexOutput("Please select a new data directory.");
+  };
+
+  const handleDiscoveryPortChange = (value: string) => {
+    const port = value.trim();
+    if (port && !isNaN(Number(port)) && Number(port) > 0 && Number(port) <= 65535) {
+      setDiscoveryPort(port);
+      localStorage.setItem('codexDiscoveryPort', port);
+      setCodexOutput(`Discovery port updated to: ${port}`);
+    }
+  };
+
+  const handleListeningPortChange = (value: string) => {
+    const port = value.trim();
+    if (port && !isNaN(Number(port)) && Number(port) > 0 && Number(port) <= 65535) {
+      setListeningPort(port);
+      localStorage.setItem('codexListeningPort', port);
+      setCodexOutput(`Listening port updated to: ${port}`);
+    }
+  };
+
+  const handleApiPortChange = (value: string) => {
+    const port = value.trim();
+    if (port && !isNaN(Number(port)) && Number(port) > 0 && Number(port) <= 65535) {
+      setApiPort(port);
+      localStorage.setItem('codexApiPort', port);
+      setCodexOutput(`API port updated to: ${port}`);
+    }
   };
 
   const killExistingCodexProcesses = async () => {
@@ -119,10 +165,11 @@ function App() {
 
       const args = [
         `--data-dir=${dataDirectory}`,
-        "--disc-port=8090",
-        "--listen-addrs=/ip4/0.0.0.0/tcp/8070",
+        `--disc-port=${discoveryPort}`,
+        `--listen-addrs=/ip4/0.0.0.0/tcp/${listeningPort}`,
         "--nat=any",
         "--api-cors-origin=*",
+        `--api-port=${apiPort}`,
         "--bootstrap-node=spr:CiUIAhIhAiJvIcA_ZwPZ9ugVKDbmqwhJZaig5zKyLiuaicRcCGqLEgIDARo8CicAJQgCEiECIm8hwD9nA9n26BUoNuarCEllqKDnMrIuK5qJxFwIaosQ3d6esAYaCwoJBJ_f8zKRAnU6KkYwRAIgM0MvWNJL296kJ9gWvfatfmVvT-A7O2s8Mxp8l9c8EW0CIC-h-H-jBVSgFjg3Eny2u33qF7BDnWFzo7fGfZ7_qc9P"
       ];
 
@@ -300,6 +347,53 @@ function App() {
               </button>
             </div>
           )}
+        </div>
+        
+        <div className="port-section">
+          <h3>Port Configuration</h3>
+          <div className="port-inputs">
+            <div className="port-input-group">
+              <label htmlFor="discovery-port">Discovery Port:</label>
+              <input
+                id="discovery-port"
+                type="number"
+                min="1"
+                max="65535"
+                value={discoveryPort}
+                onChange={(e) => handleDiscoveryPortChange(e.target.value)}
+                placeholder="8090"
+                className="port-input"
+              />
+            </div>
+            
+            <div className="port-input-group">
+              <label htmlFor="listening-port">Listening Port:</label>
+              <input
+                id="listening-port"
+                type="number"
+                min="1"
+                max="65535"
+                value={listeningPort}
+                onChange={(e) => handleListeningPortChange(e.target.value)}
+                placeholder="8070"
+                className="port-input"
+              />
+            </div>
+            
+            <div className="port-input-group">
+              <label htmlFor="api-port">API Port:</label>
+              <input
+                id="api-port"
+                type="number"
+                min="1"
+                max="65535"
+                value={apiPort}
+                onChange={(e) => handleApiPortChange(e.target.value)}
+                placeholder="8080"
+                className="port-input"
+              />
+            </div>
+          </div>
         </div>
         
         <div className="status-indicator">
