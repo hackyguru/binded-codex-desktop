@@ -54,6 +54,7 @@ const App: React.FC = () => {
           apiPort={apiPort}
           isCodexRunning={isCodexRunning}
           isCodexStarted={codexChild !== null}
+          isConnected={connectionStatus === "Found"}
           onSelectDirectory={handleSelectDirectory}
           onChangeDirectory={handleChangeDirectory}
           onDiscoveryPortChange={handleDiscoveryPortChange}

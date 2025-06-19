@@ -12,6 +12,7 @@ interface ConfigurationCardProps {
   apiPort: string;
   isCodexRunning: boolean;
   isCodexStarted: boolean;
+  isConnected: boolean;
   onSelectDirectory: () => void;
   onChangeDirectory: () => void;
   onDiscoveryPortChange: (value: string) => void;
@@ -29,6 +30,7 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   apiPort,
   isCodexRunning,
   isCodexStarted,
+  isConnected,
   onSelectDirectory,
   onChangeDirectory,
   onDiscoveryPortChange,
@@ -69,6 +71,7 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
           isCodexRunning={isCodexRunning}
           isCodexStarted={isCodexStarted}
           isDirectorySet={isDirectorySet}
+          isConnected={isConnected}
           onRunCodex={onRunCodex}
           onKillCodex={onKillCodex}
         />
