@@ -19,27 +19,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-col gap-8 flex-1 justify-center">
+      <nav className="flex flex-col gap-12 flex-1 justify-center">
         <SidebarIcon
-          icon={<FiHome size={24} />}
+          icon={<FiHome size={18} />}
           label="Dashboard"
           active={activePage === 'Dashboard'}
           onClick={() => setActivePage('Dashboard')}
         />
         <SidebarIcon
-          icon={<FiFilm size={24} />}
+          icon={<FiFilm size={18} />}
           label="Torrents"
           active={activePage === 'Torrents'}
           onClick={() => setActivePage('Torrents')}
         />
         <SidebarIcon
-          icon={<FiSearch size={24} />}
+          icon={<FiSearch size={18} />}
           label="Search"
           active={activePage === 'Search'}
           onClick={() => setActivePage('Search')}
         />
         <SidebarIcon
-          icon={<FiSettings size={24} />}
+          icon={<FiSettings size={18} />}
           label="Settings"
           active={activePage === 'Settings'}
           onClick={() => setActivePage('Settings')}
@@ -49,11 +49,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       {/* Bottom Controls */}
       <div className="flex flex-col items-center gap-6 mt-auto mb-2">
         <button className="flex flex-col items-center text-gray-400 hover:text-white focus:outline-none">
-          <FiGlobe size={20} />
+          <FiGlobe size={18} />
           <span className="text-xs mt-1">EN</span>
         </button>
         <button className="flex flex-col items-center text-gray-400 hover:text-white focus:outline-none">
-          <FiMoon size={20} />
+          <FiMoon size={18} />
         </button>
       </div>
     </aside>
@@ -77,7 +77,6 @@ const SidebarIcon: React.FC<SidebarIconProps> = ({ icon, label, active, onClick 
     aria-label={label}
   >
     {icon}
-    <span className="text-xs mt-2 tracking-wide">{label}</span>
   </button>
 );
 
