@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiUploadCloud, FiFile, FiX, FiLoader, FiDownload, FiFolder, FiRotateCcw, FiDatabase } from 'react-icons/fi';
+import { FiUploadCloud, FiFile, FiX, FiLoader, FiDownload, FiFolder, FiRotateCcw, FiDatabase, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
+import StatsCard from './StatsCard';
 
 type DownloadStatus = {
   state: 'downloading' | 'completed' | 'error' | null;
@@ -220,166 +221,171 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-6">
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`
-          border-2 border-dashed rounded-lg p-8
-          flex flex-col items-center justify-center
-          transition-colors duration-200 ease-in-out
-          ${isDragging 
-            ? 'border-blue-500 bg-blue-900/20' 
-            : 'border-gray-600 hover:border-gray-500 bg-gray-800/30'
-          }
-        `}
-      >
-        <input
-          type="file"
-          multiple
-          onChange={handleFileInput}
-          className="hidden"
-          id="fileInput"
+    <div className="w-full mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 mt-6 mx-5">
+        <StatsCard
+          icon={<FiArrowUp className="w-5 h-5 text-black" />}
+          value="2.34 Gb"
+          label="Bytes uploaded"
+          bgColor="bg-[#a8dadc]"
         />
-        
-        <FiUploadCloud className="w-12 h-12 text-gray-400 mb-4" />
-        
-        <label
-          htmlFor="fileInput"
-          className="text-sm text-gray-300 text-center cursor-pointer"
+        <StatsCard
+          icon={<FiArrowDown className="w-5 h-5 text-black" />}
+          value="12.34 Gb"
+          label="Bytes downloaded"
+          bgColor="bg-[#a8bde2]"
+        />
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`
+            rounded-3xl p-6 flex flex-col items-center justify-center text-center
+            transition-colors duration-200 ease-in-out cursor-pointer
+            bg-[#6be4a700] border-[#6be4a7] border-2 border-dashed
+          `}
+          onClick={() => document.getElementById('fileInput')?.click()}
         >
-          <span className="font-medium text-blue-400 hover:text-blue-300">
-            Click to upload
-          </span>{' '}
-          or drag and drop files here
-          <p className="text-xs text-gray-500 mt-2">
-            Supported file types: All files are allowed
-          </p>
-        </label>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileInput}
+            className="hidden"
+            id="fileInput"
+          />
+          <div className="w-16 h-16 rounded-full bg-black/20 flex items-center justify-center mb-4">
+            <FiDownload className="w-8 h-8 text-[#6be4a7]" />
+          </div>
+          <p className="text-xs text-[#6be4a7]">Any Files (Max 10GB)</p>
+          <button className="mt-4 bg-black/30 text-[#6be4a7] font-semibold py-2 px-5 rounded-full text-sm">
+            Upload Files
+          </button>
+        </div>
       </div>
 
-      {sessionFiles.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-200 mb-4">
-            Session Uploads ({sessionFiles.length})
-          </h3>
-          <div className="space-y-3">
-            {sessionFiles.map(file => (
-              <div
-                key={file.id}
-                className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
+      {/* Existing files list */}
+      {(sessionFiles.length > 0 || nodeFiles.length > 0) && (
+        <div className="mt-8 bg-[#151515] rounded-xl p-4">
+          <div className='flex items-center justify-between'>
+          <h3 className="text-lg font-semibold text-white mb-4">Uploaded Files</h3>
+          <button
+                onClick={refetchNodeFiles}
+                className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Refresh files on node"
+                title="Refresh files on node"
               >
-                <div className="flex items-center space-x-3 flex-grow">
-                  <div className={getStatusColor(file.status)}>
-                    {getStatusIcon(file.status)}
+                <FiRotateCcw className="w-4 h-4 mr-1" />
+              </button>
+          </div>
+          {sessionFiles.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-200 mb-4">
+                Session Uploads ({sessionFiles.length})
+              </h3>
+              <div className="space-y-3">
+                {sessionFiles.map(file => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
+                  >
+                    <div className="flex items-center space-x-3 flex-grow">
+                      <div className={getStatusColor(file.status)}>
+                        {getStatusIcon(file.status)}
+                      </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-medium text-gray-200">
+                          {file.name}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatFileSize(file.size)}
+                        </p>
+                        {file.status === 'success' && file.cid && (
+                          <p className="text-xs text-green-400 font-mono mt-1">
+                            CID: {file.cid}
+                          </p>
+                        )}
+                        {file.status === 'error' && file.error && (
+                          <p className="text-xs text-red-400 mt-1">
+                            Error: {file.error}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => removeFile(file.id)}
+                        className="p-1 hover:bg-gray-700 rounded-full transition-colors"
+                      >
+                        <FiX className="w-5 h-5 text-gray-400" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-grow">
-                    <p className="text-sm font-medium text-gray-200">
-                      {file.name}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {formatFileSize(file.size)}
-                    </p>
-                    {file.status === 'success' && file.cid && (
-                      <p className="text-xs text-green-400 font-mono mt-1">
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Files on Node */}
+          <div className="mt-6">
+            {isLoadingNodeFiles && <p className="text-gray-400">Loading files from node...</p>}
+            {nodeFilesError && <p className="text-red-400">Error: {nodeFilesError}</p>}
+            <div className="space-y-3">
+              {nodeFiles.map(file => (
+                <div
+                  key={file.cid}
+                  className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
+                >
+                  <div className="flex items-center space-x-3 flex-grow">
+                    <FiFile className="w-6 h-6 text-gray-400" />
+                    <div className="flex-grow">
+                      <p className="text-sm font-medium text-gray-200">
+                        {file.manifest.filename}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {formatFileSize(file.manifest.datasetSize)}
+                      </p>
+                      <p className="text-xs text-blue-400 font-mono mt-1 break-all">
                         CID: {file.cid}
                       </p>
-                    )}
-                    {file.status === 'error' && file.error && (
-                      <p className="text-xs text-red-400 mt-1">
-                        Error: {file.error}
-                      </p>
-                    )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleDownload(file.cid, file.manifest.filename)}
+                      disabled={downloadStatus[file.cid]?.state === 'downloading'}
+                      className={`p-2 rounded-full transition-colors ${
+                        downloadStatus[file.cid]?.state === 'downloading'
+                          ? 'bg-gray-700 cursor-not-allowed'
+                          : 'hover:bg-gray-700'
+                      }`}
+                      title="Download file"
+                    >
+                      {downloadStatus[file.cid]?.state === 'downloading' ? (
+                        <div className="relative">
+                          <FiLoader className="w-5 h-5 text-blue-400 animate-spin" />
+                          {downloadStatus[file.cid]?.progress !== undefined && (
+                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-blue-400">
+                              {downloadStatus[file.cid].progress}%
+                            </div>
+                          )}
+                        </div>
+                      ) : downloadStatus[file.cid]?.state === 'completed' ? (
+                        <FiDownload className="w-5 h-5 text-green-400" />
+                      ) : downloadStatus[file.cid]?.state === 'error' ? (
+                        <div className="text-red-400" title={downloadStatus[file.cid].error}>
+                          <FiDownload className="w-5 h-5" />
+                        </div>
+                      ) : (
+                        <FiDownload className="w-5 h-5 text-gray-400 hover:text-blue-400" />
+                      )}
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => removeFile(file.id)}
-                    className="p-1 hover:bg-gray-700 rounded-full transition-colors"
-                  >
-                    <FiX className="w-5 h-5 text-gray-400" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
-      
-      {/* Files on Node */}
-      <div className="mt-6">
-        <div className="flex items-center mb-4">
-          <h3 className="text-sm font-medium text-gray-200 flex items-center mr-2">
-            <FiDatabase className="w-4 h-4 mr-2" />
-            Files on Node ({nodeFiles.length})
-          </h3>
-          <button
-            onClick={refetchNodeFiles}
-            className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Refresh files on node"
-            title="Refresh files on node"
-          >
-            <FiRotateCcw className="w-4 h-4 mr-1" /> Refresh
-          </button>
-        </div>
-        {isLoadingNodeFiles && <p className="text-gray-400">Loading files from node...</p>}
-        {nodeFilesError && <p className="text-red-400">Error: {nodeFilesError}</p>}
-        <div className="space-y-3">
-          {nodeFiles.map(file => (
-            <div
-              key={file.cid}
-              className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
-            >
-              <div className="flex items-center space-x-3 flex-grow">
-                <FiFile className="w-6 h-6 text-gray-400" />
-                <div className="flex-grow">
-                  <p className="text-sm font-medium text-gray-200">
-                    {file.manifest.filename}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {formatFileSize(file.manifest.datasetSize)}
-                  </p>
-                  <p className="text-xs text-blue-400 font-mono mt-1 break-all">
-                    CID: {file.cid}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleDownload(file.cid, file.manifest.filename)}
-                  disabled={downloadStatus[file.cid]?.state === 'downloading'}
-                  className={`p-2 rounded-full transition-colors ${
-                    downloadStatus[file.cid]?.state === 'downloading'
-                      ? 'bg-gray-700 cursor-not-allowed'
-                      : 'hover:bg-gray-700'
-                  }`}
-                  title="Download file"
-                >
-                  {downloadStatus[file.cid]?.state === 'downloading' ? (
-                    <div className="relative">
-                      <FiLoader className="w-5 h-5 text-blue-400 animate-spin" />
-                      {downloadStatus[file.cid]?.progress !== undefined && (
-                        <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-blue-400">
-                          {downloadStatus[file.cid].progress}%
-                        </div>
-                      )}
-                    </div>
-                  ) : downloadStatus[file.cid]?.state === 'completed' ? (
-                    <FiDownload className="w-5 h-5 text-green-400" />
-                  ) : downloadStatus[file.cid]?.state === 'error' ? (
-                    <div className="text-red-400" title={downloadStatus[file.cid].error}>
-                      <FiDownload className="w-5 h-5" />
-                    </div>
-                  ) : (
-                    <FiDownload className="w-5 h-5 text-gray-400 hover:text-blue-400" />
-                  )}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
