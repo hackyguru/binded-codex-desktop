@@ -7,15 +7,84 @@ import {
   Torrents,
   Search,
   Settings,
-  TopNavigation
+  TopNavigation,
+  Dashboard
 } from "./components";
 import { useCodexProcess, useCodexConfig, useCodexConnection } from "./hooks";
 import "./styles/App.css";
 
-const App: React.FC = () => {
-  const [activePage, setActivePage] = useState('Dashboard');
+// Types
+interface ConnectionState {
+  status: string;
+  isConnected: boolean;
+  clearImmediateState: () => void;
+  setImmediateDisconnected: () => void;
+}
+
+interface CodexState {
+  isRunning: boolean;
+  isStarted: boolean;
+  output: string;
+}
+
+// Custom hook for connection state management
+const useConnectionState = (connectionStatus: string, isConnected: boolean): ConnectionState => {
   const [immediateConnectionState, setImmediateConnectionState] = useState<string | null>(null);
 
+  const effectiveConnectionStatus = immediateConnectionState || connectionStatus;
+  const effectiveIsConnected = effectiveConnectionStatus === "Found";
+
+  const clearImmediateState = () => setImmediateConnectionState(null);
+  
+  const setImmediateDisconnected = () => {
+    setImmediateConnectionState("Not Found");
+    setTimeout(() => setImmediateConnectionState(null), 5000);
+  };
+
+  return {
+    status: effectiveConnectionStatus,
+    isConnected: effectiveIsConnected,
+    clearImmediateState,
+    setImmediateDisconnected
+  };
+};
+
+// Custom hook for page rendering
+const usePageRenderer = (
+  activePage: string,
+  connectionState: ConnectionState,
+  codexState: CodexState,
+  apiPort: string
+) => {
+  const renderPage = () => {
+    const commonProps = {
+      connectionStatus: connectionState.status,
+      isConnected: connectionState.isConnected,
+      apiPort
+    };
+
+    switch (activePage) {
+      case 'Dashboard':
+        return <Dashboard {...commonProps} />;
+      case 'Torrents':
+        return <Torrents />;
+      case 'Search':
+        return <Search />;
+      case 'Settings':
+        return <Settings {...commonProps} codexOutput={codexState.output} />;
+      default:
+        return <Dashboard {...commonProps} />;
+    }
+  };
+
+  return renderPage;
+};
+
+const App: React.FC = () => {
+  // State
+  const [activePage, setActivePage] = useState('Dashboard');
+
+  // Hooks
   const {
     dataDirectory,
     isDirectorySet,
@@ -35,86 +104,57 @@ const App: React.FC = () => {
 
   const { connectionStatus, isConnected } = useCodexConnection(apiPort);
 
-  // Use immediate state if set, otherwise use the connection hook state
-  const effectiveConnectionStatus = immediateConnectionState || connectionStatus;
-  const effectiveIsConnected = effectiveConnectionStatus === "Found";
+  // Custom hooks
+  const connectionState = useConnectionState(connectionStatus, isConnected);
+  const codexState: CodexState = {
+    isRunning: isCodexRunning,
+    isStarted: codexChild !== null,
+    output: codexOutput
+  };
 
+  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort);
+
+  // Event handlers
   const handleRunCodexWithConfig = () => {
-    // Clear any immediate state when starting
-    setImmediateConnectionState(null);
+    connectionState.clearImmediateState();
     handleRunCodex(dataDirectory, discoveryPort, listeningPort, apiPort);
   };
 
   const handleKillCodexWithImmediateState = () => {
-    // Immediately set connection to false for instant UI update
-    setImmediateConnectionState("Not Found");
+    connectionState.setImmediateDisconnected();
     handleKillCodex();
-    // Clear the immediate state after a delay to allow normal connection checking to resume
-    setTimeout(() => {
-      setImmediateConnectionState(null);
-    }, 5000);
   };
 
-  // Auto-start codex when app loads
+  // Effects
   useEffect(() => {
-    checkExistingProcesses();
-    // Only auto-start if data directory is already set
-    if (isDirectorySet && dataDirectory) {
-      handleRunCodexWithConfig();
-    }
-  }, [isDirectorySet, dataDirectory]);
+    const initializeApp = async () => {
+      await checkExistingProcesses();
+      if (isDirectorySet && dataDirectory) {
+        handleRunCodexWithConfig();
+      }
+    };
 
-  const renderPage = () => {
-    switch (activePage) {
-      case 'Dashboard':
-        return <DashboardPage />;
-      case 'Torrents':
-        return <Torrents />;
-      case 'Search':
-        return <Search />;
-      case 'Settings':
-        return <Settings 
-          connectionStatus={effectiveConnectionStatus}
-          isConnected={effectiveIsConnected}
-          codexOutput={codexOutput}
-        />;
-      default:
-        return <DashboardPage />;
-    }
-  };
-  
-  const DashboardPage = () => (
-    <>
-      {/* File Upload/Download Section */}
-      <div className="mb-8 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <svg className="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-          </svg>
-          File Storage
-        </h3>
-        {effectiveConnectionStatus === "Found" ? (
-          <FileUpload apiPort={apiPort} isConnected={effectiveIsConnected} />
-        ) : (
-          <Install />
-        )}
-      </div>
-    </>
-  );
+    initializeApp();
+  }, [isDirectorySet, dataDirectory]);
 
   return (
     <div className="flex">
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
-      <main className="min-h-screen bg-gray-300 text-white px-6 overflow-y-auto flex-1 ml-20">
-        <TopNavigation
-          isCodexRunning={isCodexRunning}
-          isCodexStarted={codexChild !== null}
-          isDirectorySet={isDirectorySet}
-          isConnected={effectiveIsConnected}
-          onRunCodex={handleRunCodexWithConfig}
-          onKillCodex={handleKillCodexWithImmediateState}
-        />
-        <div className="max-w-4xl mx-auto bg-gray-300">
+      <main className="min-h-screen text-white px-6 overflow-y-auto flex-1 ml-20">
+        {/* Fixed TopNavigation */}
+        <div className="sticky top-0 z-20 bg-black pt-6 pb-4">
+          <TopNavigation
+            isCodexRunning={isCodexRunning}
+            isCodexStarted={codexChild !== null}
+            isDirectorySet={isDirectorySet}
+            isConnected={connectionState.isConnected}
+            onRunCodex={handleRunCodexWithConfig}
+            onKillCodex={handleKillCodexWithImmediateState}
+          />
+        </div>
+        
+        {/* Scrollable Content */}
+        <div className="mx-auto bg-[#151515] rounded-xl p-4">
           {renderPage()}
         </div>
       </main>

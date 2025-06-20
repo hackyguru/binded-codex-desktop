@@ -50,7 +50,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between w-full  mb-6">
+    <div className="flex items-center justify-between w-full h-12 mb-6">
       {/* Search CIDs Input - Left Side */}
       <div className="flex-1 max-w-md">
         <form onSubmit={handleSearchCid} className="relative">
@@ -59,7 +59,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
             value={searchCid}
             onChange={(e) => setSearchCid(e.target.value)}
             placeholder="Search CIDs..."
-            className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full border border-gray-600 rounded-lg px-2 py-1 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
             aria-label="Search CIDs"
           />
           <button
@@ -75,7 +75,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
       </div>
 
       {/* Power Button - Right Side */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 items-center">
         <button 
           onClick={handlePowerButtonClick}
           disabled={isButtonDisabled}

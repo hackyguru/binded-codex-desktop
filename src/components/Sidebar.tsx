@@ -8,11 +8,11 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
   return (
-    <aside className="fixed top-0 left-0 h-full w-20  flex flex-col items-center py-6 z-30 ">
+    <aside className="fixed top-0 left-0 h-full w-20 flex flex-col items-center py-6 z-30">
       {/* Logo/Avatar */}
-      <div className="mb-8">
+      <div className="flex items-center justify-center h-12">
         <img
-          src="src/assets/logo.png" // Placeholder ghost icon
+          src="src/assets/logo.png"
           alt="App Logo"
           className="w-12 h-12"
         />
