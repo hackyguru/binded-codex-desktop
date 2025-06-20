@@ -20,6 +20,7 @@ interface ConfigurationCardProps {
   onApiPortChange: (value: string) => void;
   onRunCodex: () => void;
   onKillCodex: () => void;
+  showControlButtons?: boolean;
 }
 
 const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
@@ -37,7 +38,8 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   onListeningPortChange,
   onApiPortChange,
   onRunCodex,
-  onKillCodex
+  onKillCodex,
+  showControlButtons = true
 }) => {
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl bg-black">
@@ -67,14 +69,16 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
         
         <StatusIndicator isRunning={isCodexStarted} />
         
-        <ControlButtons
-          isCodexRunning={isCodexRunning}
-          isCodexStarted={isCodexStarted}
-          isDirectorySet={isDirectorySet}
-          isConnected={isConnected}
-          onRunCodex={onRunCodex}
-          onKillCodex={onKillCodex}
-        />
+        {showControlButtons && (
+          <ControlButtons
+            isCodexRunning={isCodexRunning}
+            isCodexStarted={isCodexStarted}
+            isDirectorySet={isDirectorySet}
+            isConnected={isConnected}
+            onRunCodex={onRunCodex}
+            onKillCodex={onKillCodex}
+          />
+        )}
       </div>
     </div>
   );

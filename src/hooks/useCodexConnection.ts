@@ -18,13 +18,14 @@ export const useCodexConnection = (apiPort: string = '8080') => {
 
   useEffect(() => {
     checkConnection();
-    // Check connection every 5 seconds
-    const interval = setInterval(checkConnection, 5000);
+    // Check connection every 30 seconds (reduced from 5 seconds)
+    const interval = setInterval(checkConnection, 30000);
     return () => clearInterval(interval);
   }, [apiPort]);
 
   return {
     connectionStatus,
+    isConnected: connectionStatus === "Found",
     isChecking,
     checkConnection
   };

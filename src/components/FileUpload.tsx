@@ -1,24 +1,14 @@
-import React, { useState } from 'react';
-import { FiUploadCloud, FiFile, FiX, FiLoader, FiDownload, FiFolder, FiRotateCcw } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiUploadCloud, FiFile, FiX, FiLoader, FiDownload, FiFolder, FiRotateCcw, FiDatabase } from 'react-icons/fi';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
+import { useNodeFiles } from '../hooks/useNodeFiles';
 
 type DownloadStatus = {
   state: 'downloading' | 'completed' | 'error' | null;
   progress?: number;
   error?: string;
 };
-
-interface FileMetadata {
-  cid: string;
-  name: string;
-  size: number;
-  type: string;
-  manifest: {
-    filename: string;
-    mimetype: string;
-  };
-}
 
 interface FileItem {
   id: string;
@@ -32,19 +22,26 @@ interface FileItem {
 
 interface FileUploadProps {
   apiPort?: string;
+  isConnected: boolean;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const [sessionFiles, setSessionFiles] = useState<FileItem[]>([]);
   const [downloadStatus, setDownloadStatus] = useState<{ [key: string]: DownloadStatus }>({});
+  const hasInitialFetch = useRef(false);
   
-  const {
-    customDownloadPath,
-    selectDownloadDirectory,
-    resetToDefault,
-    getCurrentDownloadPath
-  } = useDownloadLocation();
+  const { getCurrentDownloadPath } = useDownloadLocation();
+
+  const { files: nodeFiles, isLoading: isLoadingNodeFiles, error: nodeFilesError, refetch: refetchNodeFiles } = useNodeFiles(apiPort, isConnected);
+
+  // Fetch files only once when component mounts and is connected
+  useEffect(() => {
+    if (isConnected && !hasInitialFetch.current) {
+      refetchNodeFiles();
+      hasInitialFetch.current = true;
+    }
+  }, []); // Empty dependency array - only run on mount
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -56,7 +53,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
 
   const uploadFile = async (file: File, fileItem: FileItem) => {
     try {
-      setFiles(prev => prev.map(f => 
+      setSessionFiles(prev => prev.map(f =>
         f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
       ));
 
@@ -74,42 +71,18 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
       }
 
       const cid = await response.text();
-
-      setFiles(prev => prev.map(f =>
+      
+      setSessionFiles(prev => prev.map(f =>
         f.id === fileItem.id ? { ...f, status: 'success' as const, cid } : f
       ));
+
+      // Refresh the list of files from the node
+      refetchNodeFiles();
+
     } catch (error) {
-      setFiles(prev => prev.map(f =>
+      setSessionFiles(prev => prev.map(f =>
         f.id === fileItem.id ? { ...f, status: 'error' as const, error: error instanceof Error ? error.message : 'Upload failed' } : f
       ));
-    }
-  };
-
-  const getFileMetadata = async (cid: string): Promise<{ success: boolean; metadata?: FileMetadata; error?: string }> => {
-    try {
-      const metadataUrl = `http://localhost:${apiPort}/api/codex/v1/data/${cid}/network`;
-      console.log(`Fetching metadata from: ${metadataUrl}`);
-
-      const response = await fetch(metadataUrl, {
-        method: "POST",
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { success: true, metadata: data };
-    } catch (error) {
-      console.error("Error fetching file metadata:", error);
-      let errorMessage = "Failed to fetch file metadata";
-      if (error instanceof Error) {
-        errorMessage += `: ${error.message}`;
-      }
-      return { success: false, error: errorMessage };
     }
   };
 
@@ -158,30 +131,18 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
     }
   };
 
-  const handleDownload = async (file: FileItem) => {
-    if (!file.cid) return;
-    
+  const handleDownload = async (cid: string, filename: string) => {
     try {
-      const metadataResult = await getFileMetadata(file.cid);
-      if (!metadataResult.success || !metadataResult.metadata) {
-        throw new Error(metadataResult.error || 'Failed to get file metadata');
-      }
-      
-      const { manifest } = metadataResult.metadata;
-      const { filename } = manifest;
-      
-      await downloadFile(file.cid, filename);
+      await downloadFile(cid, filename);
     } catch (error) {
       console.error('Download process failed:', error);
-      if (file.cid) {
-        setDownloadStatus(prev => ({ 
-          ...prev, 
-          [file.cid!]: { 
-            state: 'error', 
-            error: error instanceof Error ? error.message : 'Download failed' 
-          } 
-        }));
-      }
+      setDownloadStatus(prev => ({ 
+        ...prev, 
+        [cid]: { 
+          state: 'error', 
+          error: error instanceof Error ? error.message : 'Download failed' 
+        } 
+      }));
     }
   };
 
@@ -207,7 +168,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
       status: 'pending' as const
     }));
     
-    setFiles(prev => [...prev, ...droppedFiles]);
+    setSessionFiles(prev => [...prev, ...droppedFiles]);
 
     droppedFiles.forEach((fileItem, index) => {
       uploadFile(e.dataTransfer.files[index], fileItem);
@@ -224,7 +185,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
         status: 'pending' as const
       }));
       
-      setFiles(prev => [...prev, ...selectedFiles]);
+      setSessionFiles(prev => [...prev, ...selectedFiles]);
 
       selectedFiles.forEach((fileItem, index) => {
         if (e.target.files) {
@@ -235,7 +196,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
   };
 
   const removeFile = (id: string) => {
-    setFiles(prev => prev.filter(file => file.id !== id));
+    setSessionFiles(prev => prev.filter(file => file.id !== id));
   };
 
   const getStatusColor = (status: FileItem['status']) => {
@@ -298,48 +259,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
         </label>
       </div>
 
-      {/* Download Settings */}
-      <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-        <div className="flex items-center justify-between">
-          <div className="flex-grow">
-            <h3 className="text-sm font-medium text-gray-200">Download Location</h3>
-            <p className="text-xs text-gray-400 mt-1">
-              {customDownloadPath || 'Using default downloads directory'}
-            </p>
-            {customDownloadPath && (
-              <p className="text-xs text-blue-400 font-mono mt-1 break-all">
-                {customDownloadPath}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={selectDownloadDirectory}
-              className="flex items-center px-3 py-2 text-sm font-medium text-gray-200 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <FiFolder className="w-4 h-4 mr-2" />
-              Choose Directory
-            </button>
-            {customDownloadPath && (
-              <button
-                onClick={resetToDefault}
-                className="flex items-center px-3 py-2 text-sm font-medium text-gray-200 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                title="Reset to default downloads directory"
-              >
-                <FiRotateCcw className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {files.length > 0 && (
+      {sessionFiles.length > 0 && (
         <div className="mt-6">
           <h3 className="text-sm font-medium text-gray-200 mb-4">
-            Files ({files.length})
+            Session Uploads ({sessionFiles.length})
           </h3>
           <div className="space-y-3">
-            {files.map(file => (
+            {sessionFiles.map(file => (
               <div
                 key={file.id}
                 className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
@@ -368,37 +294,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {file.status === 'success' && file.cid && (
-                    <button
-                      onClick={() => handleDownload(file)}
-                      disabled={downloadStatus[file.cid]?.state === 'downloading'}
-                      className={`p-2 rounded-full transition-colors ${
-                        downloadStatus[file.cid]?.state === 'downloading'
-                          ? 'bg-gray-700 cursor-not-allowed'
-                          : 'hover:bg-gray-700'
-                      }`}
-                      title="Download file"
-                    >
-                      {downloadStatus[file.cid]?.state === 'downloading' ? (
-                        <div className="relative">
-                          <FiLoader className="w-5 h-5 text-blue-400 animate-spin" />
-                          {downloadStatus[file.cid]?.progress !== undefined && (
-                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-blue-400">
-                              {downloadStatus[file.cid].progress}%
-                            </div>
-                          )}
-                        </div>
-                      ) : downloadStatus[file.cid]?.state === 'completed' ? (
-                        <FiDownload className="w-5 h-5 text-green-400" />
-                      ) : downloadStatus[file.cid]?.state === 'error' ? (
-                        <div className="text-red-400" title={downloadStatus[file.cid].error}>
-                          <FiDownload className="w-5 h-5" />
-                        </div>
-                      ) : (
-                        <FiDownload className="w-5 h-5 text-gray-400 hover:text-blue-400" />
-                      )}
-                    </button>
-                  )}
                   <button
                     onClick={() => removeFile(file.id)}
                     className="p-1 hover:bg-gray-700 rounded-full transition-colors"
@@ -411,6 +306,80 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080' }) => {
           </div>
         </div>
       )}
+      
+      {/* Files on Node */}
+      <div className="mt-6">
+        <div className="flex items-center mb-4">
+          <h3 className="text-sm font-medium text-gray-200 flex items-center mr-2">
+            <FiDatabase className="w-4 h-4 mr-2" />
+            Files on Node ({nodeFiles.length})
+          </h3>
+          <button
+            onClick={refetchNodeFiles}
+            className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Refresh files on node"
+            title="Refresh files on node"
+          >
+            <FiRotateCcw className="w-4 h-4 mr-1" /> Refresh
+          </button>
+        </div>
+        {isLoadingNodeFiles && <p className="text-gray-400">Loading files from node...</p>}
+        {nodeFilesError && <p className="text-red-400">Error: {nodeFilesError}</p>}
+        <div className="space-y-3">
+          {nodeFiles.map(file => (
+            <div
+              key={file.cid}
+              className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
+            >
+              <div className="flex items-center space-x-3 flex-grow">
+                <FiFile className="w-6 h-6 text-gray-400" />
+                <div className="flex-grow">
+                  <p className="text-sm font-medium text-gray-200">
+                    {file.manifest.filename}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {formatFileSize(file.manifest.datasetSize)}
+                  </p>
+                  <p className="text-xs text-blue-400 font-mono mt-1 break-all">
+                    CID: {file.cid}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleDownload(file.cid, file.manifest.filename)}
+                  disabled={downloadStatus[file.cid]?.state === 'downloading'}
+                  className={`p-2 rounded-full transition-colors ${
+                    downloadStatus[file.cid]?.state === 'downloading'
+                      ? 'bg-gray-700 cursor-not-allowed'
+                      : 'hover:bg-gray-700'
+                  }`}
+                  title="Download file"
+                >
+                  {downloadStatus[file.cid]?.state === 'downloading' ? (
+                    <div className="relative">
+                      <FiLoader className="w-5 h-5 text-blue-400 animate-spin" />
+                      {downloadStatus[file.cid]?.progress !== undefined && (
+                        <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-blue-400">
+                          {downloadStatus[file.cid].progress}%
+                        </div>
+                      )}
+                    </div>
+                  ) : downloadStatus[file.cid]?.state === 'completed' ? (
+                    <FiDownload className="w-5 h-5 text-green-400" />
+                  ) : downloadStatus[file.cid]?.state === 'error' ? (
+                    <div className="text-red-400" title={downloadStatus[file.cid].error}>
+                      <FiDownload className="w-5 h-5" />
+                    </div>
+                  ) : (
+                    <FiDownload className="w-5 h-5 text-gray-400 hover:text-blue-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

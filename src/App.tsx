@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from "react";
 import {
-  Header,
-  ConfigurationCard,
   StatusLog,
   FileUpload,
   Install,
   Sidebar,
   Torrents,
   Search,
-  Settings
+  Settings,
+  TopNavigation
 } from "./components";
 import { useCodexProcess, useCodexConfig, useCodexConnection } from "./hooks";
 import "./styles/App.css";
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('Dashboard');
+  const [immediateConnectionState, setImmediateConnectionState] = useState<string | null>(null);
 
   const {
     dataDirectory,
     isDirectorySet,
     discoveryPort,
     listeningPort,
-    apiPort,
-    handleSelectDirectory,
-    handleChangeDirectory,
-    handleDiscoveryPortChange,
-    handleListeningPortChange,
-    handleApiPortChange
+    apiPort
   } = useCodexConfig();
 
   const {
@@ -38,10 +33,26 @@ const App: React.FC = () => {
     checkExistingProcesses
   } = useCodexProcess();
 
-  const { connectionStatus } = useCodexConnection(apiPort);
+  const { connectionStatus, isConnected } = useCodexConnection(apiPort);
+
+  // Use immediate state if set, otherwise use the connection hook state
+  const effectiveConnectionStatus = immediateConnectionState || connectionStatus;
+  const effectiveIsConnected = effectiveConnectionStatus === "Found";
 
   const handleRunCodexWithConfig = () => {
+    // Clear any immediate state when starting
+    setImmediateConnectionState(null);
     handleRunCodex(dataDirectory, discoveryPort, listeningPort, apiPort);
+  };
+
+  const handleKillCodexWithImmediateState = () => {
+    // Immediately set connection to false for instant UI update
+    setImmediateConnectionState("Not Found");
+    handleKillCodex();
+    // Clear the immediate state after a delay to allow normal connection checking to resume
+    setTimeout(() => {
+      setImmediateConnectionState(null);
+    }, 5000);
   };
 
   // Auto-start codex when app loads
@@ -62,7 +73,11 @@ const App: React.FC = () => {
       case 'Search':
         return <Search />;
       case 'Settings':
-        return <Settings />;
+        return <Settings 
+          connectionStatus={effectiveConnectionStatus}
+          isConnected={effectiveIsConnected}
+          codexOutput={codexOutput}
+        />;
       default:
         return <DashboardPage />;
     }
@@ -70,66 +85,36 @@ const App: React.FC = () => {
   
   const DashboardPage = () => (
     <>
-      <Header />
-      <ConfigurationCard
-        isDirectorySet={isDirectorySet}
-        dataDirectory={dataDirectory}
-        discoveryPort={discoveryPort}
-        listeningPort={listeningPort}
-        apiPort={apiPort}
-        isCodexRunning={isCodexRunning}
-        isCodexStarted={codexChild !== null}
-        isConnected={connectionStatus === "Found"}
-        onSelectDirectory={handleSelectDirectory}
-        onChangeDirectory={handleChangeDirectory}
-        onDiscoveryPortChange={handleDiscoveryPortChange}
-        onListeningPortChange={handleListeningPortChange}
-        onApiPortChange={handleApiPortChange}
-        onRunCodex={handleRunCodexWithConfig}
-        onKillCodex={handleKillCodex}
-      />
-      {/* Connection Status Display */}
-      <div className="mt-8 max-w-4xl mx-auto bg-black">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-xl">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-            </svg>
-            Codex Connection Status
-          </h3>
-          <div className="flex items-center justify-center">
-            <div className={`w-4 h-4 rounded-full mr-3 ${connectionStatus === "Found" ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <span className="text-lg font-medium text-white">
-              {connectionStatus === "Found" ? 'Connected to Codex API' : 'Not connected to Codex API'}
-            </span>
-          </div>
-        </div>
-      </div>
       {/* File Upload/Download Section */}
-      <div className="mt-8 max-w-4xl mx-auto bg-black">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-xl">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-            <svg className="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-            </svg>
-            File Storage
-          </h3>
-          {connectionStatus === "Found" ? (
-            <FileUpload apiPort={apiPort} />
-          ) : (
-            <Install />
-          )}
-        </div>
+      <div className="mb-8 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-xl">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          </svg>
+          File Storage
+        </h3>
+        {effectiveConnectionStatus === "Found" ? (
+          <FileUpload apiPort={apiPort} isConnected={effectiveIsConnected} />
+        ) : (
+          <Install />
+        )}
       </div>
-      <StatusLog codexOutput={codexOutput} />
     </>
   );
 
   return (
     <div className="flex">
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
-      <main className="min-h-screen bg-black text-white p-6 overflow-y-auto flex-1 ml-20">
-        <div className="max-w-4xl mx-auto bg-black">
+      <main className="min-h-screen bg-gray-300 text-white px-6 overflow-y-auto flex-1 ml-20">
+        <TopNavigation
+          isCodexRunning={isCodexRunning}
+          isCodexStarted={codexChild !== null}
+          isDirectorySet={isDirectorySet}
+          isConnected={effectiveIsConnected}
+          onRunCodex={handleRunCodexWithConfig}
+          onKillCodex={handleKillCodexWithImmediateState}
+        />
+        <div className="max-w-4xl mx-auto bg-gray-300">
           {renderPage()}
         </div>
       </main>

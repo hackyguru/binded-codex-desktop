@@ -1,4 +1,3 @@
-export { default as Header } from './Header';
 export { default as ConfigurationCard } from './ConfigurationCard';
 export { default as DataDirectorySection } from './DataDirectorySection';
 export { default as PortConfigurationSection } from './PortConfigurationSection';
@@ -8,6 +7,7 @@ export { default as StatusLog } from './StatusLog';
 export { default as FileUpload } from './FileUpload';
 export { default as Install } from './Install';
 export { default as Sidebar } from './Sidebar';
+export { default as TopNavigation } from './TopNavigation';
 export { default as Torrents } from './pages/Torrents';
 export { default as Search } from './pages/Search';
 export { default as Settings } from './pages/Settings'; 
