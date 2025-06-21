@@ -13,7 +13,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ icon, value, label, bgColor, prog
   return (
     <div className={`rounded-3xl p-6 flex flex-col justify-between h-48 ${bgColor}`}>
       <div className="flex justify-between items-start">
-        <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
+        <div className="w-10 h-10 bg-black/10 flex items-center justify-center [clip-path:polygon(50%_0%,_100%_25%,_100%_75%,_50%_100%,_0%_75%,_0%_25%)]">
           {icon}
         </div>
         {progress !== undefined && (
