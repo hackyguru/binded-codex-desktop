@@ -118,11 +118,6 @@ const FileCard: React.FC<FileCardProps> = ({
         <div className="flex items-center gap-2">
           {onLeech && onSeed ? renderSearchButtons() : renderOriginalButtons()}
         </div>
-        <div className="text-center w-12">
-          {progress < 100 && (
-            <p className="text-white font-semibold text-sm">{progress}%</p>
-          )}
-        </div>
         <div className="text-center border-l border-[#151515] px-8">
           <button className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white mb-1">
             <FiMonitor size={16} />

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // This is the structure of a single file from the API
 export interface NodeFile {
@@ -48,6 +48,11 @@ export const useNodeFiles = (apiPort: string = '8080', isConnected: boolean) => 
       setIsLoading(false);
     }
   }, [apiPort, isConnected]);
+
+  // Automatically fetch files when component mounts or when connection status changes
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
 
   return { files, isLoading, error, refetch: fetchFiles };
 }; 

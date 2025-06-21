@@ -226,8 +226,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   };
 
   return (
-    <div className="w-full mx-auto flex flex-col h-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 mt-6 mx-5">
+    <div className="w-full h-full flex flex-col">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <StatsCard
           icon={<FiArrowUp className="w-5 h-5 text-black" />}
           value="2.34 Gb"
@@ -269,8 +269,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       </div>
 
 
-      <div className='flex items-center justify-between mx-4'>
-        <h3 className="text-lg font-semibold text-white mb-4">Uploaded Files</h3>
+      <div className='flex items-center justify-between mb-4'>
+        <h3 className="text-lg font-semibold text-white">Recent Files</h3>
         <button
           onClick={refetchNodeFiles}
           className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -282,7 +282,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       </div>
 
       {(sessionFiles.length > 0 || nodeFiles.length > 0) && (
-        <div className="flex-grow bg-[#151515] rounded-xl px-4 overflow-y-auto max-h-[calc(100vh-450px)] space-y-3 py-4">
+        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto space-y-3 py-4 max-h-96">
           {sessionFiles
             .filter(file => file.status !== 'success')
             .map(file => (

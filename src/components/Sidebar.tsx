@@ -1,5 +1,6 @@
 import React from 'react';
-import { FiHome, FiFilm, FiSearch, FiSettings, FiMoon, FiGlobe } from 'react-icons/fi';
+import { FiHome, FiSearch, FiSettings, FiMoon, FiGlobe } from 'react-icons/fi';
+import { AiOutlineNodeIndex } from 'react-icons/ai';
 
 interface SidebarProps {
   activePage: string;
@@ -27,10 +28,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
           onClick={() => setActivePage('Dashboard')}
         />
         <SidebarIcon
-          icon={<FiFilm size={18} />}
-          label="Torrents"
-          active={activePage === 'Torrents'}
-          onClick={() => setActivePage('Torrents')}
+          icon={<AiOutlineNodeIndex size={22} />}
+          label="Node"
+          active={activePage === 'Node'}
+          onClick={() => setActivePage('Node')}
         />
         <SidebarIcon
           icon={<FiSearch size={18} />}

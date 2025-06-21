@@ -4,7 +4,7 @@ import {
   FileUpload,
   Install,
   Sidebar,
-  Torrents,
+  Node,
   Search,
   Settings,
   TopNavigation,
@@ -67,8 +67,8 @@ const usePageRenderer = (
     switch (activePage) {
       case 'Dashboard':
         return <Dashboard {...commonProps} />;
-      case 'Torrents':
-        return <Torrents />;
+      case 'Node':
+        return <Node {...commonProps} />;
       case 'Search':
         return <Search cid={searchedCid} />;
       case 'Settings':
@@ -145,11 +145,11 @@ const App: React.FC = () => {
   }, [isDirectorySet, dataDirectory]);
 
   return (
-    <div className="flex">
+    <div className="flex h-screen">
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
-      <main className="min-h-screen text-white px-6 overflow-y-auto flex-1 ml-20">
+      <main className="flex-1 flex flex-col text-white px-6 ml-20">
         {/* Fixed TopNavigation */}
-        <div className="sticky top-0 z-20 bg-black pt-6 pb-4">
+        <div className="flex-shrink-0 bg-black pt-6 pb-4">
           <TopNavigation
             isCodexRunning={isCodexRunning}
             isCodexStarted={codexChild !== null}
@@ -161,8 +161,8 @@ const App: React.FC = () => {
           />
         </div>
         
-        {/* Scrollable Content */}
-        <div className="mx-auto bg-[#151515] rounded-xl p-4">
+        {/* Full Height Content Container */}
+        <div className="flex-1 bg-[#151515] rounded-xl p-4 mt-4 overflow-hidden mb-6">
           {renderPage()}
         </div>
       </main>
