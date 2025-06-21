@@ -290,6 +290,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
                 key={file.id}
                 fileName={file.name}
                 fileType={getFileExtension(file.name)}
+                fileSize={formatFileSize(file.size)}
                 progress={file.status === 'uploading' ? 50 : 0}
               />
             ))}
@@ -302,9 +303,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
                 key={file.cid}
                 fileName={file.manifest.filename}
                 fileType={getFileExtension(file.manifest.filename)}
+                fileSize={formatFileSize(file.manifest.datasetSize)}
                 progress={progress}
                 onDownload={() => handleDownload(file.cid, file.manifest.filename)}
                 downloadState={downloadStatus[file.cid]?.state}
+                cid={file.cid}
               />
             );
           })}

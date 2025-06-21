@@ -54,7 +54,8 @@ const usePageRenderer = (
   activePage: string,
   connectionState: ConnectionState,
   codexState: CodexState,
-  apiPort: string
+  apiPort: string,
+  searchedCid: string
 ) => {
   const renderPage = () => {
     const commonProps = {
@@ -69,7 +70,7 @@ const usePageRenderer = (
       case 'Torrents':
         return <Torrents />;
       case 'Search':
-        return <Search />;
+        return <Search cid={searchedCid} />;
       case 'Settings':
         return <Settings {...commonProps} codexOutput={codexState.output} />;
       default:
@@ -83,6 +84,7 @@ const usePageRenderer = (
 const App: React.FC = () => {
   // State
   const [activePage, setActivePage] = useState('Dashboard');
+  const [searchedCid, setSearchedCid] = useState('');
 
   // Hooks
   const {
@@ -112,7 +114,7 @@ const App: React.FC = () => {
     output: codexOutput
   };
 
-  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort);
+  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid);
 
   // Event handlers
   const handleRunCodexWithConfig = () => {
@@ -123,6 +125,11 @@ const App: React.FC = () => {
   const handleKillCodexWithImmediateState = () => {
     connectionState.setImmediateDisconnected();
     handleKillCodex();
+  };
+
+  const handleSearch = (cid: string) => {
+    setSearchedCid(cid);
+    setActivePage('Search');
   };
 
   // Effects
@@ -150,6 +157,7 @@ const App: React.FC = () => {
             isConnected={connectionState.isConnected}
             onRunCodex={handleRunCodexWithConfig}
             onKillCodex={handleKillCodexWithImmediateState}
+            onSearch={handleSearch}
           />
         </div>
         

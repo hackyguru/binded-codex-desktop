@@ -1,52 +1,94 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-  FiArrowUp, 
-  FiArrowDown, 
-  FiClock, 
-  FiMoreVertical, 
+  FiCopy, 
   FiDownload, 
   FiMonitor,
   FiLoader,
-  FiCheck
+  FiCheck,
+  FiPlayCircle,
+  FiSave
 } from 'react-icons/fi';
+
+type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
 interface FileCardProps {
   fileName: string;
   fileType: string;
-  uploadSpeed?: string;
-  downloadSpeed?: string;
-  timeRemaining?: string;
+  fileSize: string;
   progress: number;
+  cid?: string;
+  // Original download props
   onDownload?: () => void;
-  downloadState?: 'downloading' | 'completed' | 'error' | null;
+  downloadState?: DownloadState;
+  // New Leech/Seed props
+  onLeech?: () => void;
+  onSeed?: () => void;
+  leechState?: DownloadState;
+  seedState?: DownloadState;
 }
 
 const FileCard: React.FC<FileCardProps> = ({
   fileName,
   fileType,
-  uploadSpeed = "2.5 MB/s",
-  downloadSpeed = "30.4 MB/s",
-  timeRemaining = "2min 24sec",
+  fileSize,
   progress,
+  cid,
   onDownload,
   downloadState,
+  onLeech,
+  onSeed,
+  leechState,
+  seedState
 }) => {
-  const handleDownloadClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDownload) {
-      onDownload();
-    }
-  };
+  const [isCopied, setIsCopied] = useState(false);
 
-  const renderDownloadIcon = () => {
-    if (downloadState === 'downloading') {
-      return <FiLoader size={16} className="animate-spin" />;
-    }
-    if (downloadState === 'completed') {
-      return <FiCheck size={16} />;
-    }
-    return <FiDownload size={16} />;
+  const handleCopyClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!cid) return;
+    navigator.clipboard.writeText(cid);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
+  
+  const renderOriginalButtons = () => (
+    <>
+      <button 
+        onClick={onDownload}
+        disabled={!onDownload || downloadState === 'downloading'}
+        className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {downloadState === 'downloading' ? <FiLoader size={16} className="animate-spin" /> : (downloadState === 'completed' ? <FiCheck size={16} /> : <FiDownload size={16} />)}
+      </button>
+      <button 
+        onClick={handleCopyClick}
+        disabled={!cid}
+        className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white disabled:opacity-50"
+      >
+        {isCopied ? <FiCheck size={16} className="text-green-500" /> : <FiCopy size={16} />}
+      </button>
+    </>
+  );
+
+  const renderSearchButtons = () => (
+    <>
+      <button
+        onClick={onLeech}
+        disabled={leechState === 'downloading' || seedState === 'downloading'}
+        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 rounded-full text-sm disabled:opacity-50"
+      >
+        {leechState === 'downloading' ? <FiLoader className="animate-spin" /> : <FiPlayCircle />}
+        <span>LEECH</span>
+      </button>
+      <button
+        onClick={onSeed}
+        disabled={leechState === 'downloading' || seedState === 'downloading'}
+        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 rounded-full text-sm disabled:opacity-50"
+      >
+        {seedState === 'downloading' ? <FiLoader className="animate-spin" /> : <FiSave />}
+        <span>SEED</span>
+      </button>
+    </>
+  );
 
   return (
     <div className="bg-[#2D2D2D] rounded-2xl p-4 flex items-center gap-4">
@@ -61,15 +103,7 @@ const FileCard: React.FC<FileCardProps> = ({
       <div className="flex-grow overflow-hidden">
         <p className="text-white font-medium truncate mb-2">{fileName}</p>
         <div className="flex items-center gap-4 text-gray-400 text-sm mb-3">
-          <span className="flex items-center gap-1">
-            <FiArrowUp size={14} /> {uploadSpeed}
-          </span>
-          <span className="flex items-center gap-1">
-            <FiArrowDown size={14} /> {downloadSpeed}
-          </span>
-          <span className="flex items-center gap-1">
-            <FiClock size={14} /> {timeRemaining}
-          </span>
+          <span>{fileSize}</span>
         </div>
         <div className="w-full bg-[#1E1E1E] rounded-full h-1.5">
           <div 
@@ -82,16 +116,7 @@ const FileCard: React.FC<FileCardProps> = ({
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <button 
-            onClick={handleDownloadClick}
-            disabled={!onDownload || downloadState === 'downloading'}
-            className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {renderDownloadIcon()}
-          </button>
-          <button className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white">
-            <FiMoreVertical size={16} />
-          </button>
+          {onLeech && onSeed ? renderSearchButtons() : renderOriginalButtons()}
         </div>
         <div className="text-center w-12">
           {progress < 100 && (

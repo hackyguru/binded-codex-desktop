@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
 import { IoIosPower } from 'react-icons/io';
+import { 
+  FiCopy, 
+  FiDownload, 
+  FiMonitor,
+  FiLoader,
+  FiCheck,
+  FiSearch
+} from 'react-icons/fi';
 
 interface TopNavigationProps {
   isCodexRunning: boolean;
@@ -8,6 +16,7 @@ interface TopNavigationProps {
   isConnected: boolean;
   onRunCodex: () => void;
   onKillCodex: () => void;
+  onSearch: (cid: string) => void;
 }
 
 const TopNavigation: React.FC<TopNavigationProps> = ({
@@ -16,7 +25,8 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   isDirectorySet,
   isConnected,
   onRunCodex,
-  onKillCodex
+  onKillCodex,
+  onSearch
 }) => {
   const [searchCid, setSearchCid] = useState('');
   const [isKilling, setIsKilling] = useState(false);
@@ -30,10 +40,10 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   // Button should be disabled if Codex is starting, killing, or if directory is not set
   const isButtonDisabled = isActuallyStarting || isKilling || !isDirectorySet;
 
-  const handleSearchCid = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement search functionality
-    console.log('Searching for CID:', searchCid);
+    if (!searchCid) return;
+    onSearch(searchCid);
   };
 
   const handlePowerButtonClick = () => {
@@ -53,23 +63,21 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
     <div className="flex items-center justify-between w-full h-12 mb-6">
       {/* Search CIDs Input - Left Side */}
       <div className="flex-1 max-w-md">
-        <form onSubmit={handleSearchCid} className="relative">
+        <form onSubmit={handleSearchSubmit} className="relative">
           <input
             type="text"
             value={searchCid}
             onChange={(e) => setSearchCid(e.target.value)}
             placeholder="Search CIDs..."
-            className="w-full border border-[#151515] rounded-lg px-2 py-1 text-[#6BE4A8] placeholder-[#666666] focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+            className="w-full border border-gray-600 rounded-lg px-2 py-1 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
             aria-label="Search CIDs"
           />
           <button
             type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#666666] hover:text-white focus:outline-none"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none"
             aria-label="Search"
           >
-            <svg className="w-5 h-5 text-[#666666]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            {searchCid ? <FiDownload className="w-5 h-5" /> : <FiSearch className="w-5 h-5" />}
           </button>
         </form>
       </div>

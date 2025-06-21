@@ -20,4 +20,10 @@ export interface PortConfig {
 export interface DirectoryConfig {
   dataDirectory: string;
   isDirectorySet: boolean;
+}
+
+export interface FileManifest {
+  filename: string;
+  datasetSize: number;
+  mimetype: string;
 } 
