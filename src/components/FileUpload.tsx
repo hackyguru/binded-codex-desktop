@@ -3,6 +3,7 @@ import { FiUploadCloud, FiFile, FiX, FiLoader, FiDownload, FiFolder, FiRotateCcw
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
+import { useRecentFiles } from '../hooks/useRecentFiles';
 import StatsCard from './StatsCard';
 import FileCard from './FileCard';
 
@@ -34,6 +35,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   const hasInitialFetch = useRef(false);
 
   const { getCurrentDownloadPath } = useDownloadLocation();
+  const { recentFiles, addRecentFile } = useRecentFiles();
 
   const { files: nodeFiles, isLoading: isLoadingNodeFiles, error: nodeFilesError, refetch: refetchNodeFiles } = useNodeFiles(apiPort, isConnected);
 
@@ -54,36 +56,41 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   };
 
   const uploadFile = async (file: File, fileItem: FileItem) => {
+    setSessionFiles(prev => prev.map(f => f.id === fileItem.id ? { ...f, status: 'uploading' } : f));
+
     try {
-      setSessionFiles(prev => prev.map(f =>
-        f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
-      ));
+      const formData = new FormData();
+      formData.append('file', file);
 
       const response = await fetch(`http://localhost:${apiPort}/api/codex/v1/data`, {
         method: 'POST',
-        headers: {
-          'Content-Type': file.type,
-          'Content-Disposition': `attachment; filename="${file.name}"`
-        },
-        body: file
+        body: formData,
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        const result = await response.json();
+        setSessionFiles(prev => prev.map(f => 
+          f.id === fileItem.id 
+            ? { ...f, status: 'success', cid: result.cid }
+            : f
+        ));
+
+        // Add to recent files
+        addRecentFile({
+          cid: result.cid,
+          fileName: file.name,
+          fileType: file.name.split('.').pop()?.toUpperCase() || 'FILE',
+          fileSize: formatFileSize(file.size),
+          source: 'upload'
+        });
+      } else {
         throw new Error(`Upload failed: ${response.statusText}`);
       }
-
-      const cid = await response.text();
-
-      setSessionFiles(prev => prev.map(f =>
-        f.id === fileItem.id ? { ...f, status: 'success' as const, cid } : f
-      ));
-
-      // Refresh the list of files from the node
-      refetchNodeFiles();
-
     } catch (error) {
-      setSessionFiles(prev => prev.map(f =>
-        f.id === fileItem.id ? { ...f, status: 'error' as const, error: error instanceof Error ? error.message : 'Upload failed' } : f
+      setSessionFiles(prev => prev.map(f => 
+        f.id === fileItem.id 
+          ? { ...f, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' }
+          : f
       ));
     }
   };
@@ -121,6 +128,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         ...prev,
         [cid]: { state: 'completed', progress: 100 }
       }));
+
+      // Add to recent files
+      addRecentFile({
+        cid,
+        fileName,
+        fileType: fileName.split('.').pop()?.toUpperCase() || 'FILE',
+        fileSize: 'Unknown', // We don't have size info for downloads from recent files
+        source: 'download'
+      });
     } catch (error) {
       console.error('Download failed:', error);
       setDownloadStatus(prev => ({
@@ -281,7 +297,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         </button>
       </div>
 
-      {(sessionFiles.length > 0 || nodeFiles.length > 0) && (
+      {(sessionFiles.length > 0 || recentFiles.length > 0) && (
         <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto space-y-3 py-4 max-h-96">
           {sessionFiles
             .filter(file => file.status !== 'success')
@@ -294,18 +310,18 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
                 progress={file.status === 'uploading' ? 50 : 0}
               />
             ))}
-          {nodeFiles.map(file => {
+          {recentFiles.map(file => {
             const downloadProgress = downloadStatus[file.cid]?.progress;
             const progress = downloadProgress !== undefined ? downloadProgress : 100;
             
             return (
               <FileCard
-                key={file.cid}
-                fileName={file.manifest.filename}
-                fileType={getFileExtension(file.manifest.filename)}
-                fileSize={formatFileSize(file.manifest.datasetSize)}
+                key={file.id}
+                fileName={file.fileName}
+                fileType={file.fileType}
+                fileSize={file.fileSize}
                 progress={progress}
-                onDownload={() => handleDownload(file.cid, file.manifest.filename)}
+                onDownload={() => handleDownload(file.cid, file.fileName)}
                 downloadState={downloadStatus[file.cid]?.state}
                 cid={file.cid}
               />

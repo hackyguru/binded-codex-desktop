@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiLoader, FiXCircle, FiAlertTriangle, FiSearch } from 'react-icons/fi';
-import { useCidInfo, useCodexConfig, useDownloadLocation } from '../../hooks';
+import { useCidInfo, useCodexConfig, useDownloadLocation, useRecentFiles } from '../../hooks';
 import FileCard from '../FileCard';
 import { formatBytes } from '../../utils/formatBytes';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -16,11 +16,25 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
   const { apiPort } = useCodexConfig();
   const { fileInfo, isLoading, error } = useCidInfo(cid, apiPort);
   const { getCurrentDownloadPath } = useDownloadLocation();
+  const { addRecentFile } = useRecentFiles();
   
   const [leechState, setLeechState] = useState<DownloadState>(null);
   const [seedState, setSeedState] = useState<DownloadState>(null);
   const [leechProgress, setLeechProgress] = useState(0);
   const [seedProgress, setSeedProgress] = useState(0);
+
+  // Add file to recent files when found
+  useEffect(() => {
+    if (fileInfo && fileInfo.manifest) {
+      addRecentFile({
+        cid: fileInfo.cid,
+        fileName: fileInfo.manifest.filename,
+        fileType: fileInfo.manifest.mimetype.split('/')[1] || getFileExtension(fileInfo.manifest.filename),
+        fileSize: formatBytes(fileInfo.manifest.datasetSize),
+        source: 'search'
+      });
+    }
+  }, [fileInfo, addRecentFile]);
 
   // Debug logging
   console.log('Search component - API Port:', apiPort);
@@ -79,6 +93,15 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
       console.log('File downloaded via leech');
       setLeechState('completed');
       setLeechProgress(100);
+
+      // Add to recent files when downloaded
+      addRecentFile({
+        cid: fileInfo.cid,
+        fileName: fileInfo.manifest.filename,
+        fileType: fileInfo.manifest.mimetype.split('/')[1] || getFileExtension(fileInfo.manifest.filename),
+        fileSize: formatBytes(fileInfo.manifest.datasetSize),
+        source: 'download'
+      });
     } catch (e) {
       console.error('Leech download failed:', e);
       setLeechState('error');
@@ -111,6 +134,15 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
       console.log('File seeded and downloaded');
       setSeedState('completed');
       setSeedProgress(100);
+
+      // Add to recent files when downloaded
+      addRecentFile({
+        cid: fileInfo.cid,
+        fileName: fileInfo.manifest.filename,
+        fileType: fileInfo.manifest.mimetype.split('/')[1] || getFileExtension(fileInfo.manifest.filename),
+        fileSize: formatBytes(fileInfo.manifest.datasetSize),
+        source: 'download'
+      });
     } catch (e) {
       console.error('Seed operation failed:', e);
       setSeedState('error');
