@@ -4,6 +4,7 @@ import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
 import StatsCard from './StatsCard';
+import FileCard from './FileCard';
 
 type DownloadStatus = {
   state: 'downloading' | 'completed' | 'error' | null;
@@ -31,7 +32,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   const [sessionFiles, setSessionFiles] = useState<FileItem[]>([]);
   const [downloadStatus, setDownloadStatus] = useState<{ [key: string]: DownloadStatus }>({});
   const hasInitialFetch = useRef(false);
-  
+
   const { getCurrentDownloadPath } = useDownloadLocation();
 
   const { files: nodeFiles, isLoading: isLoadingNodeFiles, error: nodeFilesError, refetch: refetchNodeFiles } = useNodeFiles(apiPort, isConnected);
@@ -72,7 +73,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       }
 
       const cid = await response.text();
-      
+
       setSessionFiles(prev => prev.map(f =>
         f.id === fileItem.id ? { ...f, status: 'success' as const, cid } : f
       ));
@@ -89,17 +90,17 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
 
   const downloadFile = async (cid: string, fileName: string) => {
     try {
-      setDownloadStatus(prev => ({ 
-        ...prev, 
-        [cid]: { state: 'downloading', progress: 0 } 
+      setDownloadStatus(prev => ({
+        ...prev,
+        [cid]: { state: 'downloading', progress: 0 }
       }));
-      
+
       const downloadUrl = `http://localhost:${apiPort}/api/codex/v1/data/${cid}/network/stream`;
       console.log(`Downloading file from: ${downloadUrl}`);
 
       const downloadsPath = getCurrentDownloadPath();
       const filePath = `${downloadsPath}/${fileName}`;
-      
+
       console.log(`Saving file to: ${filePath}`);
 
       await download(
@@ -116,18 +117,18 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         new Map([['Accept', '*/*']])
       );
 
-      setDownloadStatus(prev => ({ 
-        ...prev, 
-        [cid]: { state: 'completed', progress: 100 } 
+      setDownloadStatus(prev => ({
+        ...prev,
+        [cid]: { state: 'completed', progress: 100 }
       }));
     } catch (error) {
       console.error('Download failed:', error);
-      setDownloadStatus(prev => ({ 
-        ...prev, 
-        [cid]: { 
-          state: 'error', 
-          error: error instanceof Error ? error.message : 'Download failed' 
-        } 
+      setDownloadStatus(prev => ({
+        ...prev,
+        [cid]: {
+          state: 'error',
+          error: error instanceof Error ? error.message : 'Download failed'
+        }
       }));
     }
   };
@@ -137,12 +138,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       await downloadFile(cid, filename);
     } catch (error) {
       console.error('Download process failed:', error);
-      setDownloadStatus(prev => ({ 
-        ...prev, 
-        [cid]: { 
-          state: 'error', 
-          error: error instanceof Error ? error.message : 'Download failed' 
-        } 
+      setDownloadStatus(prev => ({
+        ...prev,
+        [cid]: {
+          state: 'error',
+          error: error instanceof Error ? error.message : 'Download failed'
+        }
       }));
     }
   };
@@ -160,7 +161,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const droppedFiles = Array.from(e.dataTransfer.files).map(file => ({
       id: Math.random().toString(36).substring(7),
       name: file.name,
@@ -168,7 +169,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       type: file.type,
       status: 'pending' as const
     }));
-    
+
     setSessionFiles(prev => [...prev, ...droppedFiles]);
 
     droppedFiles.forEach((fileItem, index) => {
@@ -185,7 +186,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         type: file.type,
         status: 'pending' as const
       }));
-      
+
       setSessionFiles(prev => [...prev, ...selectedFiles]);
 
       selectedFiles.forEach((fileItem, index) => {
@@ -220,8 +221,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
     return <FiFile className="w-6 h-6" />;
   };
 
+  const getFileExtension = (filename: string) => {
+    return filename.split('.').pop()?.toUpperCase() || 'FILE';
+  };
+
   return (
-    <div className="w-full mx-auto">
+    <div className="w-full mx-auto flex flex-col h-full">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 mt-6 mx-5">
         <StatsCard
           icon={<FiArrowUp className="w-5 h-5 text-black" />}
@@ -263,127 +268,46 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         </div>
       </div>
 
-      {/* Existing files list */}
+
+      <div className='flex items-center justify-between mx-4'>
+        <h3 className="text-lg font-semibold text-white mb-4">Uploaded Files</h3>
+        <button
+          onClick={refetchNodeFiles}
+          className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label="Refresh files on node"
+          title="Refresh files on node"
+        >
+          <FiRotateCcw className="w-4 h-4 mr-1" />
+        </button>
+      </div>
+
       {(sessionFiles.length > 0 || nodeFiles.length > 0) && (
-        <div className="mt-8 bg-[#151515] rounded-xl p-4">
-          <div className='flex items-center justify-between'>
-          <h3 className="text-lg font-semibold text-white mb-4">Uploaded Files</h3>
-          <button
-                onClick={refetchNodeFiles}
-                className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Refresh files on node"
-                title="Refresh files on node"
-              >
-                <FiRotateCcw className="w-4 h-4 mr-1" />
-              </button>
-          </div>
-          {sessionFiles.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-200 mb-4">
-                Session Uploads ({sessionFiles.length})
-              </h3>
-              <div className="space-y-3">
-                {sessionFiles.map(file => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
-                  >
-                    <div className="flex items-center space-x-3 flex-grow">
-                      <div className={getStatusColor(file.status)}>
-                        {getStatusIcon(file.status)}
-                      </div>
-                      <div className="flex-grow">
-                        <p className="text-sm font-medium text-gray-200">
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {formatFileSize(file.size)}
-                        </p>
-                        {file.status === 'success' && file.cid && (
-                          <p className="text-xs text-green-400 font-mono mt-1">
-                            CID: {file.cid}
-                          </p>
-                        )}
-                        {file.status === 'error' && file.error && (
-                          <p className="text-xs text-red-400 mt-1">
-                            Error: {file.error}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => removeFile(file.id)}
-                        className="p-1 hover:bg-gray-700 rounded-full transition-colors"
-                      >
-                        <FiX className="w-5 h-5 text-gray-400" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Files on Node */}
-          <div className="mt-6">
-            {isLoadingNodeFiles && <p className="text-gray-400">Loading files from node...</p>}
-            {nodeFilesError && <p className="text-red-400">Error: {nodeFilesError}</p>}
-            <div className="space-y-3">
-              {nodeFiles.map(file => (
-                <div
-                  key={file.cid}
-                  className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-600"
-                >
-                  <div className="flex items-center space-x-3 flex-grow">
-                    <FiFile className="w-6 h-6 text-gray-400" />
-                    <div className="flex-grow">
-                      <p className="text-sm font-medium text-gray-200">
-                        {file.manifest.filename}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {formatFileSize(file.manifest.datasetSize)}
-                      </p>
-                      <p className="text-xs text-blue-400 font-mono mt-1 break-all">
-                        CID: {file.cid}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleDownload(file.cid, file.manifest.filename)}
-                      disabled={downloadStatus[file.cid]?.state === 'downloading'}
-                      className={`p-2 rounded-full transition-colors ${
-                        downloadStatus[file.cid]?.state === 'downloading'
-                          ? 'bg-gray-700 cursor-not-allowed'
-                          : 'hover:bg-gray-700'
-                      }`}
-                      title="Download file"
-                    >
-                      {downloadStatus[file.cid]?.state === 'downloading' ? (
-                        <div className="relative">
-                          <FiLoader className="w-5 h-5 text-blue-400 animate-spin" />
-                          {downloadStatus[file.cid]?.progress !== undefined && (
-                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-blue-400">
-                              {downloadStatus[file.cid].progress}%
-                            </div>
-                          )}
-                        </div>
-                      ) : downloadStatus[file.cid]?.state === 'completed' ? (
-                        <FiDownload className="w-5 h-5 text-green-400" />
-                      ) : downloadStatus[file.cid]?.state === 'error' ? (
-                        <div className="text-red-400" title={downloadStatus[file.cid].error}>
-                          <FiDownload className="w-5 h-5" />
-                        </div>
-                      ) : (
-                        <FiDownload className="w-5 h-5 text-gray-400 hover:text-blue-400" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="flex-grow bg-[#151515] rounded-xl px-4 overflow-y-auto max-h-[calc(100vh-450px)] space-y-3 py-4">
+          {sessionFiles
+            .filter(file => file.status !== 'success')
+            .map(file => (
+              <FileCard
+                key={file.id}
+                fileName={file.name}
+                fileType={getFileExtension(file.name)}
+                progress={file.status === 'uploading' ? 50 : 0}
+              />
+            ))}
+          {nodeFiles.map(file => {
+            const downloadProgress = downloadStatus[file.cid]?.progress;
+            const progress = downloadProgress !== undefined ? downloadProgress : 100;
+            
+            return (
+              <FileCard
+                key={file.cid}
+                fileName={file.manifest.filename}
+                fileType={getFileExtension(file.manifest.filename)}
+                progress={progress}
+                onDownload={() => handleDownload(file.cid, file.manifest.filename)}
+                downloadState={downloadStatus[file.cid]?.state}
+              />
+            );
+          })}
         </div>
       )}
     </div>

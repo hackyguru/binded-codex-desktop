@@ -13,4 +13,5 @@ export { default as Torrents } from './pages/Torrents';
 export { default as Search } from './pages/Search';
 export { default as Settings } from './pages/Settings';
 export { default as StatsCard } from './StatsCard';
-export { default as CircularProgress } from './CircularProgress'; 
+export { default as CircularProgress } from './CircularProgress';
+export { default as FileCard } from './FileCard'; 
