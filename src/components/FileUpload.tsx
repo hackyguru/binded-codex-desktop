@@ -4,14 +4,11 @@ import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
 import { useRecentFiles } from '../hooks/useRecentFiles';
+import { useCodexConfig } from '../hooks/useCodexConfig';
 import StatsCard from './StatsCard';
 import FileCard from './FileCard';
 
-type DownloadStatus = {
-  state: 'downloading' | 'completed' | 'error' | null;
-  progress?: number;
-  error?: string;
-};
+type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
 interface FileItem {
   id: string;
@@ -31,13 +28,16 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [sessionFiles, setSessionFiles] = useState<FileItem[]>([]);
-  const [downloadStatus, setDownloadStatus] = useState<{ [key: string]: DownloadStatus }>({});
+  const [downloadStatus, setDownloadStatus] = useState<{ [key: string]: DownloadState }>({});
+  const [seedToNodeStatus, setSeedToNodeStatus] = useState<{ [key: string]: DownloadState }>({});
   const hasInitialFetch = useRef(false);
 
   const { getCurrentDownloadPath } = useDownloadLocation();
   const { recentFiles, addRecentFile } = useRecentFiles();
+  const { apiPort: configApiPort } = useCodexConfig();
+  const finalApiPort = apiPort || configApiPort;
 
-  const { files: nodeFiles, isLoading: isLoadingNodeFiles, error: nodeFilesError, refetch: refetchNodeFiles } = useNodeFiles(apiPort, isConnected);
+  const { files: nodeFiles, isLoading: isLoadingNodeFiles, error: nodeFilesError, refetch: refetchNodeFiles } = useNodeFiles(finalApiPort, isConnected);
 
   // Fetch files only once when component mounts and is connected
   useEffect(() => {
@@ -55,6 +55,47 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Check if a file is already seeded in the local node
+  const isFileSeededInNode = (cid: string): boolean => {
+    return nodeFiles.some(file => file.cid === cid);
+  };
+
+  // Seed file to local node
+  const handleSeedToNode = async (cid: string) => {
+    try {
+      setSeedToNodeStatus(prev => ({
+        ...prev,
+        [cid]: 'downloading'
+      }));
+
+      const seedUrl = `http://localhost:${finalApiPort}/api/codex/v1/data/${cid}/network`;
+      console.log('Seeding file to local node:', seedUrl);
+      
+      const response = await fetch(seedUrl, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to seed file to local node. Status: ${response.status}`);
+      }
+      
+      console.log('File successfully seeded to local node');
+      setSeedToNodeStatus(prev => ({
+        ...prev,
+        [cid]: 'completed'
+      }));
+
+      // Refresh node files to update the list
+      refetchNodeFiles();
+    } catch (error) {
+      console.error('Seed to node failed:', error);
+      setSeedToNodeStatus(prev => ({
+        ...prev,
+        [cid]: 'error'
+      }));
+    }
+  };
+
   const uploadFile = async (file: File, fileItem: FileItem) => {
     setSessionFiles(prev => prev.map(f => f.id === fileItem.id ? { ...f, status: 'uploading' } : f));
 
@@ -62,7 +103,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`http://localhost:${apiPort}/api/codex/v1/data`, {
+      const response = await fetch(`http://localhost:${finalApiPort}/api/codex/v1/data`, {
         method: 'POST',
         body: formData,
       });
@@ -99,10 +140,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
     try {
       setDownloadStatus(prev => ({
         ...prev,
-        [cid]: { state: 'downloading', progress: 0 }
+        [cid]: 'downloading'
       }));
 
-      const downloadUrl = `http://localhost:${apiPort}/api/codex/v1/data/${cid}/network/stream`;
+      const downloadUrl = `http://localhost:${finalApiPort}/api/codex/v1/data/${cid}/network/stream`;
       console.log(`Downloading file from: ${downloadUrl}`);
 
       const downloadsPath = getCurrentDownloadPath();
@@ -116,17 +157,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         ({ progress, total }: { progress: number; total: number }) => {
           const progressPercentage = Math.round((progress / total) * 100);
           console.log(`Downloaded ${progress} of ${total} bytes (${progressPercentage}%)`);
-          setDownloadStatus(prev => ({
-            ...prev,
-            [cid]: { state: 'downloading', progress: progressPercentage }
-          }));
         },
         new Map([['Accept', '*/*']])
       );
 
       setDownloadStatus(prev => ({
         ...prev,
-        [cid]: { state: 'completed', progress: 100 }
+        [cid]: 'completed'
       }));
 
       // Add to recent files
@@ -141,10 +178,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       console.error('Download failed:', error);
       setDownloadStatus(prev => ({
         ...prev,
-        [cid]: {
-          state: 'error',
-          error: error instanceof Error ? error.message : 'Download failed'
-        }
+        [cid]: 'error'
       }));
     }
   };
@@ -156,10 +190,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       console.error('Download process failed:', error);
       setDownloadStatus(prev => ({
         ...prev,
-        [cid]: {
-          state: 'error',
-          error: error instanceof Error ? error.message : 'Download failed'
-        }
+        [cid]: 'error'
       }));
     }
   };
@@ -311,8 +342,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
               />
             ))}
           {recentFiles.map(file => {
-            const downloadProgress = downloadStatus[file.cid]?.progress;
-            const progress = downloadProgress !== undefined ? downloadProgress : 100;
+            const progress = 100; // Recent files are always at 100% progress
+            const isSeeded = isFileSeededInNode(file.cid);
             
             return (
               <FileCard
@@ -322,7 +353,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
                 fileSize={file.fileSize}
                 progress={progress}
                 onDownload={() => handleDownload(file.cid, file.fileName)}
-                downloadState={downloadStatus[file.cid]?.state}
+                downloadState={downloadStatus[file.cid]}
+                onSeedToNode={() => handleSeedToNode(file.cid)}
+                seedToNodeState={seedToNodeStatus[file.cid]}
+                isSeededInNode={isSeeded}
+                showSeedButton={true}
                 cid={file.cid}
               />
             );

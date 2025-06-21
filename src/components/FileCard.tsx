@@ -6,8 +6,10 @@ import {
   FiLoader,
   FiCheck,
   FiPlayCircle,
-  FiSave
+  FiSave,
+  FiDatabase
 } from 'react-icons/fi';
+import { FaSeedling } from 'react-icons/fa';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
@@ -25,6 +27,11 @@ interface FileCardProps {
   onSeed?: () => void;
   leechState?: DownloadState;
   seedState?: DownloadState;
+  // Recent files seeding props
+  onSeedToNode?: () => void;
+  seedToNodeState?: DownloadState;
+  isSeededInNode?: boolean;
+  showSeedButton?: boolean;
 }
 
 const FileCard: React.FC<FileCardProps> = ({
@@ -38,7 +45,11 @@ const FileCard: React.FC<FileCardProps> = ({
   onLeech,
   onSeed,
   leechState,
-  seedState
+  seedState,
+  onSeedToNode,
+  seedToNodeState,
+  isSeededInNode = false,
+  showSeedButton = false
 }) => {
   const [isCopied, setIsCopied] = useState(false);
 
@@ -90,6 +101,36 @@ const FileCard: React.FC<FileCardProps> = ({
     </>
   );
 
+  const renderSeedButton = () => {
+    if (isSeededInNode) {
+      return (
+        <button 
+          className="w-9 h-9 bg-[#6be4a7] clip-path-hexagon flex items-center justify-center text-black mb-1"
+          title="File is already seeded in local node"
+        >
+          <FaSeedling size={16} />
+        </button>
+      );
+    }
+
+    return (
+      <button 
+        onClick={onSeedToNode}
+        disabled={!onSeedToNode || seedToNodeState === 'downloading'}
+        className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white mb-1 disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Seed file to local node"
+      >
+        {seedToNodeState === 'downloading' ? <FiLoader size={16} className="animate-spin" /> : (seedToNodeState === 'completed' ? <FiCheck size={16} /> : <FaSeedling size={16} />)}
+      </button>
+    );
+  };
+
+  const renderInfoButton = () => (
+    <button className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white mb-1">
+      <FiMonitor size={16} />
+    </button>
+  );
+
   return (
     <div className="bg-[#2D2D2D] rounded-2xl p-4 flex items-center gap-4">
       {/* File Icon */}
@@ -119,10 +160,12 @@ const FileCard: React.FC<FileCardProps> = ({
           {onLeech && onSeed ? renderSearchButtons() : renderOriginalButtons()}
         </div>
         <div className="text-center border-l border-[#151515] px-8">
-          <button className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white mb-1">
-            <FiMonitor size={16} />
-          </button>
-          <p className="text-gray-400 text-xs font-bold">INFO</p>
+          <div className="flex justify-center mb-1">
+            {showSeedButton ? renderSeedButton() : renderInfoButton()}
+          </div>
+          <p className="text-gray-400 text-xs font-bold text-center">
+            {showSeedButton ? (isSeededInNode ? 'SEEDED' : 'SEED') : 'INFO'}
+          </p>
         </div>
       </div>
     </div>
