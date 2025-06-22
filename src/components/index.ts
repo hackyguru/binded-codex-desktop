@@ -12,6 +12,7 @@ export { default as Dashboard } from './pages/Dashboard';
 export { default as Node } from './pages/Node';
 export { default as Search } from './pages/Search';
 export { default as Settings } from './pages/Settings';
+export { default as NetworkStatus } from './pages/NetworkStatus';
 export { default as StatsCard } from './StatsCard';
 export { default as CircularProgress } from './CircularProgress';
 export { default as FileCard } from './FileCard'; 

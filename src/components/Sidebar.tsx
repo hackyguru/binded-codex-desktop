@@ -1,6 +1,7 @@
 import React from 'react';
-import { FiHome, FiSearch, FiSettings, FiMoon, FiGlobe } from 'react-icons/fi';
+import { FiHome, FiSearch, FiSettings, FiMoon } from 'react-icons/fi';
 import { AiOutlineNodeIndex } from 'react-icons/ai';
+import { GrNodes } from 'react-icons/gr';
 
 interface SidebarProps {
   activePage: string;
@@ -40,18 +41,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
           onClick={() => setActivePage('Search')}
         />
         <SidebarIcon
-          icon={<FiSettings size={18} />}
-          label="Settings"
-          active={activePage === 'Settings'}
-          onClick={() => setActivePage('Settings')}
+          icon={<GrNodes size={18} />}
+          label="Network Status"
+          active={activePage === 'NetworkStatus'}
+          onClick={() => setActivePage('NetworkStatus')}
         />
       </nav>
 
       {/* Bottom Controls */}
       <div className="flex flex-col items-center gap-6 mt-auto mb-2">
-        <button className="flex flex-col items-center text-gray-400 hover:text-white focus:outline-none">
-          <FiGlobe size={18} />
-          <span className="text-xs mt-1">EN</span>
+        <button 
+          className="flex flex-col items-center text-gray-400 hover:text-white focus:outline-none"
+          onClick={() => setActivePage('Settings')}
+        >
+          <FiSettings size={18} />
         </button>
         <button className="flex flex-col items-center text-gray-400 hover:text-white focus:outline-none">
           <FiMoon size={18} />

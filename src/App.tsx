@@ -7,6 +7,7 @@ import {
   Node,
   Search,
   Settings,
+  NetworkStatus,
   TopNavigation,
   Dashboard
 } from "./components";
@@ -71,6 +72,8 @@ const usePageRenderer = (
         return <Node {...commonProps} />;
       case 'Search':
         return <Search cid={searchedCid} />;
+      case 'NetworkStatus':
+        return <NetworkStatus {...commonProps} />;
       case 'Settings':
         return <Settings {...commonProps} codexOutput={codexState.output} />;
       default:
