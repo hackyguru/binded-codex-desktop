@@ -18,11 +18,13 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, isConnected, code
     discoveryPort,
     listeningPort,
     apiPort,
+    autoStartCodex,
     handleSelectDirectory,
     handleChangeDirectory,
     handleDiscoveryPortChange,
     handleListeningPortChange,
-    handleApiPortChange
+    handleApiPortChange,
+    handleAutoStartCodexChange
   } = useCodexConfig();
 
   const {
@@ -56,6 +58,35 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, isConnected, code
           onKillCodex={() => {}} // Not needed in settings
           showControlButtons={false} // Hide start/kill buttons
         />
+
+        {/* Auto-start Codex Section */}
+        <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">
+          <div className="flex items-center justify-between">
+            <div className="flex-grow">
+              <h3 className="text-sm font-medium text-gray-200">Auto-start Codex</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Automatically start Codex when the application opens
+              </p>
+            </div>
+            <div className="flex items-center">
+              <button
+                onClick={() => handleAutoStartCodexChange(!autoStartCodex)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  autoStartCodex ? 'bg-blue-600' : 'bg-gray-600'
+                }`}
+                role="switch"
+                aria-checked={autoStartCodex}
+                aria-label="Toggle auto-start Codex"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    autoStartCodex ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Download Location Section */}
         <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600">

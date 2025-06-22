@@ -47,5 +47,14 @@ export const storageUtils = {
 
   removeDownloadLocation: (): void => {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.DOWNLOAD_LOCATION);
+  },
+
+  getAutoStartCodex: (): boolean => {
+    const value = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTO_START_CODEX);
+    return value !== null ? value === 'true' : true; // Default to true for backward compatibility
+  },
+
+  setAutoStartCodex: (enabled: boolean): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.AUTO_START_CODEX, enabled.toString());
   }
 }; 

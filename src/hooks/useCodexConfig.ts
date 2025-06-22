@@ -10,6 +10,7 @@ export const useCodexConfig = () => {
   const [discoveryPort, setDiscoveryPort] = useState<string>(DEFAULT_PORTS.DISCOVERY);
   const [listeningPort, setListeningPort] = useState<string>(DEFAULT_PORTS.LISTENING);
   const [apiPort, setApiPort] = useState<string>(DEFAULT_PORTS.API);
+  const [autoStartCodex, setAutoStartCodex] = useState<boolean>(true);
 
   // Initialize and load saved data directory and ports
   useEffect(() => {
@@ -17,6 +18,7 @@ export const useCodexConfig = () => {
     const savedDiscoveryPort = storageUtils.getDiscoveryPort();
     const savedListeningPort = storageUtils.getListeningPort();
     const savedApiPort = storageUtils.getApiPort();
+    const savedAutoStartCodex = storageUtils.getAutoStartCodex();
     
     if (savedDir) {
       setDataDirectory(savedDir);
@@ -34,6 +36,8 @@ export const useCodexConfig = () => {
     if (savedApiPort) {
       setApiPort(savedApiPort);
     }
+    
+    setAutoStartCodex(savedAutoStartCodex);
   }, []);
 
   const handleSelectDirectory = async () => {
@@ -84,16 +88,23 @@ export const useCodexConfig = () => {
     }
   };
 
+  const handleAutoStartCodexChange = (enabled: boolean) => {
+    setAutoStartCodex(enabled);
+    storageUtils.setAutoStartCodex(enabled);
+  };
+
   return {
     dataDirectory,
     isDirectorySet,
     discoveryPort,
     listeningPort,
     apiPort,
+    autoStartCodex,
     handleSelectDirectory,
     handleChangeDirectory,
     handleDiscoveryPortChange,
     handleListeningPortChange,
-    handleApiPortChange
+    handleApiPortChange,
+    handleAutoStartCodexChange
   };
 }; 

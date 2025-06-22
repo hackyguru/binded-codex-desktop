@@ -92,7 +92,8 @@ const App: React.FC = () => {
     isDirectorySet,
     discoveryPort,
     listeningPort,
-    apiPort
+    apiPort,
+    autoStartCodex
   } = useCodexConfig();
 
   const {
@@ -136,13 +137,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const initializeApp = async () => {
       await checkExistingProcesses();
-      if (isDirectorySet && dataDirectory) {
+      if (isDirectorySet && dataDirectory && autoStartCodex) {
         handleRunCodexWithConfig();
       }
     };
 
     initializeApp();
-  }, [isDirectorySet, dataDirectory]);
+  }, [isDirectorySet, dataDirectory, autoStartCodex]);
 
   return (
     <div className="flex h-screen">

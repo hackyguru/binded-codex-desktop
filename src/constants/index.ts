@@ -9,7 +9,8 @@ export const LOCAL_STORAGE_KEYS = {
   DISCOVERY_PORT: 'codexDiscoveryPort',
   LISTENING_PORT: 'codexListeningPort',
   API_PORT: 'codexApiPort',
-  DOWNLOAD_LOCATION: 'codexDownloadLocation'
+  DOWNLOAD_LOCATION: 'codexDownloadLocation',
+  AUTO_START_CODEX: 'codexAutoStartEnabled'
 } as const;
 
 export const PROCESS_CHECK_INTERVAL = 5000; // 5 seconds
