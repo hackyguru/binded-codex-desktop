@@ -283,13 +283,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
           icon={<FiArrowUp className="w-5 h-5 text-black" />}
           value="2.34 Gb"
           label="Bytes uploaded"
-          bgColor="bg-[#a8dadc]"
+          bgColor="bg-[#6BE4A8]/70"
         />
         <StatsCard
           icon={<FiArrowDown className="w-5 h-5 text-black" />}
           value="12.34 Gb"
           label="Bytes downloaded"
-          bgColor="bg-[#a8bde2]"
+          bgColor="bg-[#6BE4A8]/70"
         />
         <div
           onDragOver={handleDragOver}
@@ -313,7 +313,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
             <FiDownload className="w-8 h-8 text-[#6be4a7]" />
           </div>
           <p className="text-xs text-[#6be4a7]">Any Files (Max 10GB)</p>
-          <button className="mt-4 bg-black/30 text-[#6be4a7] font-semibold py-2 px-5 rounded-full text-sm">
+          <button className="mt-4 bg-[#6be4a7] text-[#151515] font-semibold py-2 px-5 rounded-full text-sm">
             Upload Files
           </button>
         </div>

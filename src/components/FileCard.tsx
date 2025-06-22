@@ -134,8 +134,8 @@ const FileCard: React.FC<FileCardProps> = ({
   return (
     <div className="bg-[#2D2D2D] rounded-2xl p-4 flex items-center gap-4">
       {/* File Icon */}
-      <div className="flex-shrink-0 w-20 h-20 bg-[#C2D1FF] rounded-lg flex items-center justify-center">
-        <div className="w-16 h-16 bg-[#A8BDE2] rounded-md flex items-center justify-center">
+              <div className="flex-shrink-0 w-20 h-20 bg-[#6BE4A8]/60 rounded-lg flex items-center justify-center">
+        <div className="w-16 h-16 bg-[#6BE4A8] rounded-md flex items-center justify-center">
           <span className="text-black font-bold text-sm uppercase">{fileType}</span>
         </div>
       </div>
@@ -148,7 +148,7 @@ const FileCard: React.FC<FileCardProps> = ({
         </div>
         <div className="w-full bg-[#1E1E1E] rounded-full h-1.5">
           <div 
-            className="bg-[#A8BDE2] h-1.5 rounded-full" 
+                          className="bg-[#6BE4A8] h-1.5 rounded-full" 
             style={{ width: `${progress}%` }}
           ></div>
         </div>

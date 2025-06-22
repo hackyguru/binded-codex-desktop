@@ -119,8 +119,8 @@ const Node: React.FC<NodeProps> = ({
     <div className="w-full h-full flex flex-col">
       {/* Header with stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <div className="bg-[#a8bde2] rounded-2xl p-6 flex items-center">
-          <div className="w-12 h-12 bg-[#8ba3d1] rounded-lg flex items-center justify-center mr-4">
+        <div className="bg-[#6BE4A8]/70 rounded-2xl p-6 flex items-center">
+          <div className="w-12 h-12 bg-[#6BE4A8]/80 rounded-lg flex items-center justify-center mr-4">
             <FiDatabase className="w-6 h-6 text-black" />
           </div>
           <div>
@@ -129,8 +129,8 @@ const Node: React.FC<NodeProps> = ({
           </div>
         </div>
         
-        <div className="bg-[#a8dadc] rounded-2xl p-6 flex items-center">
-          <div className="w-12 h-12 bg-[#8bc5c7] rounded-lg flex items-center justify-center mr-4">
+        <div className="bg-[#6BE4A8]/70 rounded-2xl p-6 flex items-center">
+          <div className="w-12 h-12 bg-[#6BE4A8]/80 rounded-lg flex items-center justify-center mr-4">
             <FiDownload className="w-6 h-6 text-black" />
           </div>
           <div>
@@ -139,8 +139,8 @@ const Node: React.FC<NodeProps> = ({
           </div>
         </div>
         
-        <div className="bg-[#6be4a7] rounded-2xl p-6 flex items-center">
-          <div className="w-12 h-12 bg-[#5ad396] rounded-lg flex items-center justify-center mr-4">
+        <div className="bg-[#6BE4A8]/60 rounded-2xl p-6 flex items-center">
+          <div className="w-12 h-12 bg-[#6BE4A8]/80 rounded-lg flex items-center justify-center mr-4">
             <AiOutlineNodeIndex className="w-6 h-6 text-black" />
           </div>
           <div>
