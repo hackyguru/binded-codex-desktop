@@ -97,41 +97,45 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   };
 
   const uploadFile = async (file: File, fileItem: FileItem) => {
-    setSessionFiles(prev => prev.map(f => f.id === fileItem.id ? { ...f, status: 'uploading' } : f));
-
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      setSessionFiles(prev => prev.map(f =>
+        f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
+      ));
 
       const response = await fetch(`http://localhost:${finalApiPort}/api/codex/v1/data`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': file.type,
+          'Content-Disposition': `attachment; filename="${file.name}"`
+        },
+        body: file
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setSessionFiles(prev => prev.map(f => 
-          f.id === fileItem.id 
-            ? { ...f, status: 'success', cid: result.cid }
-            : f
-        ));
-
-        // Add to recent files
-        addRecentFile({
-          cid: result.cid,
-          fileName: file.name,
-          fileType: file.name.split('.').pop()?.toUpperCase() || 'FILE',
-          fileSize: formatFileSize(file.size),
-          source: 'upload'
-        });
-      } else {
+      if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
       }
+
+      const cid = await response.text();
+      
+      setSessionFiles(prev => prev.map(f =>
+        f.id === fileItem.id ? { ...f, status: 'success' as const, cid } : f
+      ));
+
+      // Add to recent files
+      addRecentFile({
+        cid: cid,
+        fileName: file.name,
+        fileType: file.name.split('.').pop()?.toUpperCase() || 'FILE',
+        fileSize: formatFileSize(file.size),
+        source: 'upload'
+      });
+
+      // Refresh the list of files from the node
+      refetchNodeFiles();
+
     } catch (error) {
-      setSessionFiles(prev => prev.map(f => 
-        f.id === fileItem.id 
-          ? { ...f, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' }
-          : f
+      setSessionFiles(prev => prev.map(f =>
+        f.id === fileItem.id ? { ...f, status: 'error' as const, error: error instanceof Error ? error.message : 'Upload failed' } : f
       ));
     }
   };
