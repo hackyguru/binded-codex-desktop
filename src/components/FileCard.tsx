@@ -66,14 +66,14 @@ const FileCard: React.FC<FileCardProps> = ({
       <button 
         onClick={onDownload}
         disabled={!onDownload || downloadState === 'downloading'}
-        className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {downloadState === 'downloading' ? <FiLoader size={16} className="animate-spin" /> : (downloadState === 'completed' ? <FiCheck size={16} /> : <FiDownload size={16} />)}
       </button>
       <button 
         onClick={handleCopyClick}
         disabled={!cid}
-        className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white disabled:opacity-50"
+        className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white disabled:opacity-50"
       >
         {isCopied ? <FiCheck size={16} className="text-green-500" /> : <FiCopy size={16} />}
       </button>
@@ -85,7 +85,7 @@ const FileCard: React.FC<FileCardProps> = ({
       <button
         onClick={onLeech}
         disabled={leechState === 'downloading' || seedState === 'downloading'}
-        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 rounded-full text-sm disabled:opacity-50"
+        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 clip-path-hexagon text-sm disabled:opacity-50"
       >
         {leechState === 'downloading' ? <FiLoader className="animate-spin" /> : <FiPlayCircle />}
         <span>LEECH</span>
@@ -93,7 +93,7 @@ const FileCard: React.FC<FileCardProps> = ({
       <button
         onClick={onSeed}
         disabled={leechState === 'downloading' || seedState === 'downloading'}
-        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 rounded-full text-sm disabled:opacity-50"
+        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 clip-path-hexagon text-sm disabled:opacity-50"
       >
         {seedState === 'downloading' ? <FiLoader className="animate-spin" /> : <FiSave />}
         <span>SEED</span>
@@ -126,7 +126,7 @@ const FileCard: React.FC<FileCardProps> = ({
   };
 
   const renderInfoButton = () => (
-    <button className="w-9 h-9 bg-[#3D3D3D] rounded-full flex items-center justify-center text-white mb-1">
+    <button className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white mb-1">
       <FiMonitor size={16} />
     </button>
   );

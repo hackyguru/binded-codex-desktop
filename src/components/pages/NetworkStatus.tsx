@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { GrNodes } from 'react-icons/gr';
-import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiEye, FiEyeOff, FiCopy, FiCheck } from 'react-icons/fi';
 import { useDebugInfo } from '../../hooks/useDebugInfo';
 import { useGeoLocation } from '../../hooks/useGeoLocation';
 // @ts-ignore
@@ -22,6 +22,32 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
   // Get geo location info for connected nodes
   const nodeAddresses = debugInfo?.table.nodes.map(node => node.address) || [];
   const { geoData, loading: geoLoading, refresh: refreshGeo } = useGeoLocation(nodeAddresses);
+
+  // Copy functionality
+  const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
+
+  const handleCopy = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItems(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopiedItems(prev => ({ ...prev, [key]: false }));
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
+  };
+
+  // Copy button component
+  const CopyButton: React.FC<{ text: string; copyKey: string }> = ({ text, copyKey }) => (
+    <button
+      onClick={() => handleCopy(text, copyKey)}
+      className="ml-2 w-6 h-6 clip-path-hexagon bg-black/20 hover:bg-[#6BE4A8]/20 flex items-center justify-center text-gray-400 hover:text-[#6BE4A8] transition-colors focus:outline-none"
+      title="Copy to clipboard"
+    >
+      {copiedItems[copyKey] ? <FiCheck size={12} className="text-[#6BE4A8]" /> : <FiCopy size={12} />}
+    </button>
+  );
 
   // Remove scroll detection - it was causing issues with mouse movement
 
@@ -361,17 +387,26 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-400">Node ID</p>
-                    <p className="text-white font-mono text-sm break-all">{debugInfo.id}</p>
+                    <div className="flex items-center">
+                      <p className="text-white font-mono text-sm break-all flex-1">{debugInfo.id}</p>
+                      <CopyButton text={debugInfo.id} copyKey="node-id" />
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm text-gray-400">Repository</p>
-                    <p className="text-white font-mono text-sm">{debugInfo.repo}</p>
+                    <div className="flex items-center">
+                      <p className="text-white font-mono text-sm flex-1">{debugInfo.repo}</p>
+                      <CopyButton text={debugInfo.repo} copyKey="repo" />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-400">SPR</p>
-                    <p className="text-white font-mono text-sm break-all">{debugInfo.spr}</p>
+                    <div className="flex items-center">
+                      <p className="text-white font-mono text-sm break-all flex-1">{debugInfo.spr}</p>
+                      <CopyButton text={debugInfo.spr} copyKey="spr" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -389,15 +424,24 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-black/20 rounded-lg p-4">
                     <p className="text-sm text-gray-400">Version</p>
-                    <p className="text-white font-semibold">{debugInfo.codex.version}</p>
+                    <div className="flex items-center">
+                      <p className="text-white font-semibold flex-1">{debugInfo.codex.version}</p>
+                      <CopyButton text={debugInfo.codex.version} copyKey="version" />
+                    </div>
                   </div>
                   <div className="bg-black/20 rounded-lg p-4">
                     <p className="text-sm text-gray-400">Revision</p>
-                    <p className="text-white font-mono">{debugInfo.codex.revision}</p>
+                    <div className="flex items-center">
+                      <p className="text-white font-mono flex-1">{debugInfo.codex.revision}</p>
+                      <CopyButton text={debugInfo.codex.revision} copyKey="revision" />
+                    </div>
                   </div>
                   <div className="bg-black/20 rounded-lg p-4">
                     <p className="text-sm text-gray-400">Contracts</p>
-                    <p className="text-white font-mono">{debugInfo.codex.contracts}</p>
+                    <div className="flex items-center">
+                      <p className="text-white font-mono flex-1">{debugInfo.codex.contracts}</p>
+                      <CopyButton text={debugInfo.codex.contracts} copyKey="contracts" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -414,7 +458,10 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                     <div className="space-y-2">
                       {debugInfo.addrs.map((addr, index) => (
                         <div key={index} className="bg-black/20 rounded-lg p-3">
-                          <p className="text-white font-mono text-sm">{addr}</p>
+                          <div className="flex items-center">
+                            <p className="text-white font-mono text-sm flex-1">{addr}</p>
+                            <CopyButton text={addr} copyKey={`listening-addr-${index}`} />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -424,7 +471,10 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                     <div className="space-y-2">
                       {debugInfo.announceAddresses.map((addr, index) => (
                         <div key={index} className="bg-black/20 rounded-lg p-3">
-                          <p className="text-white font-mono text-sm">{addr}</p>
+                          <div className="flex items-center">
+                            <p className="text-white font-mono text-sm flex-1">{addr}</p>
+                            <CopyButton text={addr} copyKey={`announce-addr-${index}`} />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -443,17 +493,26 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                     <div className="space-y-2">
                       <div>
                         <p className="text-sm text-gray-400">Node ID</p>
-                        <p className="text-white font-mono text-sm">{formatNodeId(debugInfo.table.localNode.nodeId)}</p>
+                        <div className="flex items-center">
+                          <p className="text-white font-mono text-sm flex-1">{formatNodeId(debugInfo.table.localNode.nodeId)}</p>
+                          <CopyButton text={debugInfo.table.localNode.nodeId} copyKey="local-node-id" />
+                        </div>
                       </div>
                       <div>
                         <p className="text-sm text-gray-400">Peer ID</p>
-                        <p className="text-white font-mono text-sm">{formatNodeId(debugInfo.table.localNode.peerId)}</p>
+                        <div className="flex items-center">
+                          <p className="text-white font-mono text-sm flex-1">{formatNodeId(debugInfo.table.localNode.peerId)}</p>
+                          <CopyButton text={debugInfo.table.localNode.peerId} copyKey="local-peer-id" />
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div>
                         <p className="text-sm text-gray-400">Address</p>
-                        <p className="text-white font-mono text-sm">{formatAddress(debugInfo.table.localNode.address)}</p>
+                        <div className="flex items-center">
+                          <p className="text-white font-mono text-sm flex-1">{formatAddress(debugInfo.table.localNode.address)}</p>
+                          <CopyButton text={debugInfo.table.localNode.address} copyKey="local-address" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -490,17 +549,26 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                             <div className="space-y-2">
                               <div>
                                 <p className="text-sm text-gray-400">Node ID</p>
-                                <p className="text-white font-mono text-sm">{formatNodeId(node.nodeId)}</p>
+                                <div className="flex items-center">
+                                  <p className="text-white font-mono text-sm flex-1">{formatNodeId(node.nodeId)}</p>
+                                  <CopyButton text={node.nodeId} copyKey={`connected-node-id-${index}`} />
+                                </div>
                               </div>
                               <div>
                                 <p className="text-sm text-gray-400">Peer ID</p>
-                                <p className="text-white font-mono text-sm">{formatNodeId(node.peerId)}</p>
+                                <div className="flex items-center">
+                                  <p className="text-white font-mono text-sm flex-1">{formatNodeId(node.peerId)}</p>
+                                  <CopyButton text={node.peerId} copyKey={`connected-peer-id-${index}`} />
+                                </div>
                               </div>
                             </div>
                             <div className="space-y-2">
                               <div>
                                 <p className="text-sm text-gray-400">Address</p>
-                                <p className="text-white font-mono text-sm">{formatAddress(node.address)}</p>
+                                <div className="flex items-center">
+                                  <p className="text-white font-mono text-sm flex-1">{formatAddress(node.address)}</p>
+                                  <CopyButton text={node.address} copyKey={`connected-address-${index}`} />
+                                </div>
                                 {geoInfo && (
                                   <div className="flex items-center space-x-2">
                                     <span className="text-lg" title={`${geoInfo.country}${geoInfo.city ? `, ${geoInfo.city}` : ''}`}>

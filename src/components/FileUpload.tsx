@@ -313,7 +313,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
             <FiDownload className="w-8 h-8 text-[#6be4a7]" />
           </div>
           <p className="text-xs text-[#6be4a7]">Any Files (Max 10GB)</p>
-          <button className="mt-4 bg-[#6be4a7] text-[#151515] font-semibold py-2 px-5 rounded-full text-sm">
+          <button 
+            className="mt-4 bg-[#6be4a7] text-[#151515] font-semibold py-2 px-5 text-sm"
+            style={{
+              clipPath: 'polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%)'
+            }}
+          >
             Upload Files
           </button>
         </div>

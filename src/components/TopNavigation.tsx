@@ -108,7 +108,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
             />
             <button
               type="submit"
-              className="absolute right-6 top-1/2 transform -translate-y-1/2 text-black hover:text-white focus:outline-none"
+              className="absolute right-6 top-1/2 transform -translate-y-1/2 text-black focus:outline-none"
               aria-label="Search"
             >
               {searchCid ? <FiDownload className="w-5 h-5" /> : <FiSearch className="w-5 h-5" />}
