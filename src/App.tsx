@@ -65,6 +65,12 @@ const usePageRenderer = (
       apiPort
     };
 
+    // Show Install component on most pages when Codex is not running
+    // Exception: Settings page should always be accessible for configuration
+    if (connectionState.status !== "Found" && activePage !== 'Settings') {
+      return <Install />;
+    }
+
     switch (activePage) {
       case 'Dashboard':
         return <Dashboard {...commonProps} />;
@@ -88,6 +94,9 @@ const App: React.FC = () => {
   // State
   const [activePage, setActivePage] = useState('Dashboard');
   const [searchedCid, setSearchedCid] = useState('');
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [manuallyKilled, setManuallyKilled] = useState(false);
+  const [appStartTime] = useState(Date.now());
 
   // Hooks
   const {
@@ -123,11 +132,13 @@ const App: React.FC = () => {
   // Event handlers
   const handleRunCodexWithConfig = () => {
     connectionState.clearImmediateState();
+    setManuallyKilled(false); // Reset manual kill flag when manually starting
     handleRunCodex(dataDirectory, discoveryPort, listeningPort, apiPort);
   };
 
   const handleKillCodexWithImmediateState = () => {
     connectionState.setImmediateDisconnected();
+    setManuallyKilled(true); // Mark as manually killed to prevent auto-restart
     handleKillCodex();
   };
 
@@ -136,17 +147,52 @@ const App: React.FC = () => {
     setActivePage('Search');
   };
 
-  // Effects
+  // Effects - Only run once on app initialization
   useEffect(() => {
     const initializeApp = async () => {
       await checkExistingProcesses();
-      if (isDirectorySet && dataDirectory && autoStartCodex) {
+      
+      // Debug logging
+      console.log('Auto-start check:', {
+        hasInitialized,
+        isDirectorySet,
+        dataDirectory: !!dataDirectory,
+        autoStartCodex,
+        manuallyKilled,
+        timeSinceStart: Date.now() - appStartTime
+      });
+      
+      // Only auto-start on very first initialization and within first 5 seconds of app start
+      const isInitialLoad = !hasInitialized && (Date.now() - appStartTime) < 5000;
+      
+      if (isInitialLoad && isDirectorySet && dataDirectory && autoStartCodex && !manuallyKilled) {
+        console.log('Auto-starting Codex on initial load...');
         handleRunCodexWithConfig();
+      }
+      
+      if (!hasInitialized) {
+        setHasInitialized(true);
       }
     };
 
-    initializeApp();
-  }, [isDirectorySet, dataDirectory, autoStartCodex]);
+    // Only run if we haven't initialized yet OR if critical config changed
+    if (!hasInitialized || (isDirectorySet && dataDirectory && !codexChild)) {
+      initializeApp();
+    }
+  }, [isDirectorySet, dataDirectory, autoStartCodex, hasInitialized, manuallyKilled, appStartTime, codexChild]);
+
+  // Reset manual kill flag when process stops unexpectedly (not manually killed)
+  useEffect(() => {
+    if (hasInitialized && !codexChild && !isCodexRunning && manuallyKilled) {
+      // Process has stopped and we're not in the middle of starting it
+      // Reset the manual kill flag after a delay to allow for potential auto-restart
+      const timer = setTimeout(() => {
+        setManuallyKilled(false);
+      }, 5000); // 5 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [codexChild, isCodexRunning, manuallyKilled, hasInitialized]);
 
   return (
     <div className="flex h-screen">
@@ -166,7 +212,9 @@ const App: React.FC = () => {
         </div>
         
         {/* Full Height Content Container */}
-        <div className="flex-1 bg-[#151515] rounded-xl p-4 mt-4 overflow-hidden mb-6">
+        <div className={`flex-1 bg-[#151515] rounded-xl mt-4 overflow-hidden mb-6 ${
+          connectionStatus !== "Found" && activePage !== 'Settings' ? '' : 'p-4'
+        }`}>
           {renderPage()}
         </div>
       </main>

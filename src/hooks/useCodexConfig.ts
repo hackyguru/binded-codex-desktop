@@ -20,6 +20,12 @@ export const useCodexConfig = () => {
     const savedApiPort = storageUtils.getApiPort();
     const savedAutoStartCodex = storageUtils.getAutoStartCodex();
     
+    // Debug logging
+    console.log('Loading auto-start setting:', {
+      savedAutoStartCodex,
+      rawValue: localStorage.getItem('codexAutoStartEnabled')
+    });
+    
     if (savedDir) {
       setDataDirectory(savedDir);
       setIsDirectorySet(true);
@@ -89,8 +95,10 @@ export const useCodexConfig = () => {
   };
 
   const handleAutoStartCodexChange = (enabled: boolean) => {
+    console.log('Changing auto-start setting to:', enabled);
     setAutoStartCodex(enabled);
     storageUtils.setAutoStartCodex(enabled);
+    console.log('Saved to localStorage:', localStorage.getItem('codexAutoStartEnabled'));
   };
 
   return {

@@ -13,10 +13,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   apiPort 
 }) => {
   return (
-    <div className="">
+    <div className="w-full h-full">
       {/* File Upload/Download Section */}
-      <div className="">
-        
+      <div className="w-full h-full">
         {connectionStatus === "Found" ? (
           <FileUpload apiPort={apiPort} isConnected={isConnected} />
         ) : (

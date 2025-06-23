@@ -249,10 +249,10 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, isConnected, code
   };
 
   return (
-    <div className="w-full h-full flex">
+    <div className="w-full h-full flex gap-6">
       {/* Left Sidebar - Categories */}
-      <div className="w-64 flex-shrink-0 border-r border-gray-800/50">
-        <div className="p-6">
+      <div className="w-64 flex-shrink-0 h-full">
+        <div className="bg-black/20 rounded-xl p-6 h-full">
           <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
           <nav className="space-y-2">
             {categories.map((category) => (
