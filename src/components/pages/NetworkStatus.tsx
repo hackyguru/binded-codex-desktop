@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { GrNodes } from 'react-icons/gr';
 import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useDebugInfo } from '../../hooks/useDebugInfo';
@@ -17,34 +17,13 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
   isConnected = false, 
   apiPort = '8080' 
 }) => {
-  const [isScrolling, setIsScrolling] = useState(false);
   const { debugInfo, isLoading, error, refetch } = useDebugInfo(apiPort, isConnected);
   
   // Get geo location info for connected nodes
   const nodeAddresses = debugInfo?.table.nodes.map(node => node.address) || [];
   const { geoData, loading: geoLoading, refresh: refreshGeo } = useGeoLocation(nodeAddresses);
 
-  // Detect scrolling to pause updates
-  useEffect(() => {
-    let scrollTimeout: number;
-    
-    const handleScroll = () => {
-      setIsScrolling(true);
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        setIsScrolling(false);
-      }, 150); // Consider scrolling stopped after 150ms of no scroll events
-    };
-
-    const scrollContainer = document.querySelector('.overflow-y-auto');
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-      return () => {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-        clearTimeout(scrollTimeout);
-      };
-    }
-  }, []);
+  // Remove scroll detection - it was causing issues with mouse movement
 
   // Add a way to force refresh geo data
   const handleRefreshWithGeo = () => {
@@ -67,9 +46,11 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
   };
 
   // World map component using dotted-map library
-const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isScrolling: boolean }) => {
+const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
   const [mapSvg, setMapSvg] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [lastCountryCodesString, setLastCountryCodesString] = useState<string>('');
+  const generationTimeoutRef = useRef<number | null>(null);
 
   // Memoize unique countries calculation to avoid unnecessary recalculations
   const uniqueCountries = useMemo(() => {
@@ -94,10 +75,19 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
       .join(',');
   }, [uniqueCountries]);
 
-  // Memoize the map generation function
-  const generateMap = useCallback(async () => {
-    // Skip generation if already generating or if scrolling
-    if (isGenerating || isScrolling) {
+  // Refs to access current values without causing re-renders
+  const mapSvgRef = useRef(mapSvg);
+  const uniqueCountriesRef = useRef(uniqueCountries);
+
+  // Update refs whenever values change
+  useEffect(() => {
+    mapSvgRef.current = mapSvg;
+    uniqueCountriesRef.current = uniqueCountries;
+  }, [mapSvg, uniqueCountries]);
+
+  // Stable map generation function without circular dependencies
+  const generateMap = useCallback(async (countries: any[]) => {
+    if (isGenerating) {
       return;
     }
 
@@ -112,7 +102,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
       });
 
       // Add pins for each unique country (if any)
-      uniqueCountries.forEach((location: any) => {
+      countries.forEach((location: any) => {
         try {
           map.addPin({
             lat: getCountryLatLng(location.countryCode).lat,
@@ -144,29 +134,33 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
     } finally {
       setIsGenerating(false);
     }
-  }, [uniqueCountries, isGenerating, isScrolling]);
+  }, [isGenerating]);
 
-  // Generate map only when country codes actually change (less frequent updates)
+  // Single effect to handle all map generation logic
   useEffect(() => {
-    // Don't generate map while scrolling for better performance
-    if (isScrolling) {
+    // Clear any existing timeout
+    if (generationTimeoutRef.current) {
+      clearTimeout(generationTimeoutRef.current);
+    }
+
+    // Only generate if country codes have actually changed
+    if (countryCodesString === lastCountryCodesString) {
       return;
     }
 
-    // Add a delay to prevent rapid re-generation during scrolling
-    const timeoutId = setTimeout(() => {
-      generateMap();
-    }, 1000); // 1 second delay
+    // Use timeout to generate map with delay
+    generationTimeoutRef.current = setTimeout(() => {
+      // Generate map with current countries
+      generateMap(uniqueCountriesRef.current);
+      setLastCountryCodesString(countryCodesString);
+    }, mapSvgRef.current ? 5000 : 0); // 5 second delay for updates, immediate for initial load
 
-    return () => clearTimeout(timeoutId);
-  }, [countryCodesString, isScrolling]);
-
-  // Generate initial empty map on first mount only
-  useEffect(() => {
-    if (!mapSvg) {
-      generateMap();
-    }
-  }, []); // Empty dependency array - only run once
+    return () => {
+      if (generationTimeoutRef.current) {
+        clearTimeout(generationTimeoutRef.current);
+      }
+    };
+  }, [countryCodesString]); // Only depend on countryCodesString!
 
   // Simple country coordinates lookup (approximate)
   const getCountryLatLng = (countryCode: string): { lat: number; lng: number } => {
@@ -246,7 +240,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
           Global Network Map
         </h4>
         
-        <div className="relative w-full h-[32rem] bg-black/10 rounded-lg border border-gray-800/50 overflow-hidden p-4">
+        <div className="relative w-full h-[32rem] bg-black/10 rounded-lg overflow-hidden p-4">
         {mapSvg ? (
           <div 
             className="w-full h-full flex items-center justify-center relative"
@@ -467,7 +461,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
               </div>
 
               {/* Global Network Map */}
-              <WorldMap geoData={geoData} isScrolling={isScrolling} />
+              <WorldMap geoData={geoData} />
 
               {/* Connected Nodes */}
               <div className="bg-black/20 rounded-xl p-6">
@@ -480,10 +474,10 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
                     onClick={refreshGeo}
                     disabled={geoLoading}
                     className="px-2 py-1 text-xs text-[#6BE4A8] rounded flex items-center focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] hover:text-white transition-colors disabled:opacity-50"
-                    aria-label="Refresh geo flags"
-                    title="Refresh country flags"
-                  >
-                    {geoLoading ? '🔄 Loading...' : '🌍 Refresh Flags'}
+                                            aria-label="Reload Geo-information"
+                        title="Reload Geo-information"
+                      >
+                        {geoLoading ? '🔄 Loading...' : '🌍 Reload Geo-information'}
                   </button>
                 </h4>
                 {debugInfo.table.nodes.length > 0 ? (
@@ -538,7 +532,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
           {!debugInfo && isLoading && (
             <>
               {/* Node Identity Skeleton */}
-              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+              <div className="bg-black/20 rounded-xl p-6 animate-pulse">
                 <div className="flex items-center mb-4">
                   <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
                   <div className="h-6 bg-gray-600 rounded w-32"></div>
@@ -564,7 +558,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
               </div>
 
               {/* Version Information Skeleton */}
-              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+              <div className="bg-black/20 rounded-xl p-6 animate-pulse">
                 <div className="flex items-center mb-4">
                   <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
                   <div className="h-6 bg-gray-600 rounded w-40"></div>
@@ -586,7 +580,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
               </div>
 
               {/* Network Addresses Skeleton */}
-              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+              <div className="bg-black/20 rounded-xl p-6 animate-pulse">
                 <div className="flex items-center mb-4">
                   <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
                   <div className="h-6 bg-gray-600 rounded w-36"></div>
@@ -615,7 +609,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
               </div>
 
               {/* Local Node Skeleton */}
-              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+              <div className="bg-black/20 rounded-xl p-6 animate-pulse">
                 <div className="flex items-center mb-4">
                   <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
                   <div className="h-6 bg-gray-600 rounded w-24"></div>
@@ -643,7 +637,7 @@ const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isSc
               </div>
 
               {/* Connected Nodes Skeleton */}
-              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+              <div className="bg-black/20 rounded-xl p-6 animate-pulse">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
