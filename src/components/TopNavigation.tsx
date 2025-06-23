@@ -29,7 +29,14 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   onSearch
 }) => {
   const [searchCid, setSearchCid] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [isKilling, setIsKilling] = useState(false);
+
+  // Function to truncate CID for display
+  const truncateCid = (cid: string) => {
+    if (cid.length <= 10) return cid;
+    return `${cid.slice(0, 3)}...${cid.slice(-3)}`;
+  };
 
   // If connected to API, Codex is already running successfully
   const isCodexActuallyRunning = isConnected || isCodexStarted;
@@ -43,7 +50,19 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchCid) return;
-    onSearch(searchCid);
+    onSearch(searchCid); // Use full CID for search
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchCid(e.target.value);
+  };
+
+  const handleInputFocus = () => {
+    setIsInputFocused(true);
+  };
+
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
   };
 
   const handlePowerButtonClick = () => {
@@ -64,21 +83,37 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
       {/* Search CIDs Input - Left Side */}
       <div className="flex-1 max-w-md">
         <form onSubmit={handleSearchSubmit} className="relative">
-          <input
-            type="text"
-            value={searchCid}
-            onChange={(e) => setSearchCid(e.target.value)}
-            placeholder="Search CIDs..."
-            className="w-full border border-gray-600 rounded-lg px-2 py-1 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
-            aria-label="Search CIDs"
-          />
-          <button
-            type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none"
-            aria-label="Search"
+          {/* Hexagonal container */}
+          <div 
+            className="relative w-full "
+            style={{
+              clipPath: 'polygon(20px 0%, calc(100% - 20px) 0%, 100% 50%, calc(100% - 20px) 100%, 20px 100%, 0% 50%)',
+              height: '44px'
+            }}
           >
-            {searchCid ? <FiDownload className="w-5 h-5" /> : <FiSearch className="w-5 h-5" />}
-          </button>
+            {/* Invisible input inside hexagonal container */}
+            <input
+              type="text"
+              value={isInputFocused ? searchCid : truncateCid(searchCid)}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              placeholder="Search CIDs..."
+              className="w-full h-full pl-8 pr-12 bg-[#6BE4A8] text-black placeholder-black border-0 outline-none focus:outline-none focus:ring-0"
+              style={{
+                border: 'none',
+                boxShadow: 'none'
+              }}
+              aria-label="Search CIDs"
+            />
+            <button
+              type="submit"
+              className="absolute right-6 top-1/2 transform -translate-y-1/2 text-black hover:text-white focus:outline-none"
+              aria-label="Search"
+            >
+              {searchCid ? <FiDownload className="w-5 h-5" /> : <FiSearch className="w-5 h-5" />}
+            </button>
+          </div>
         </form>
       </div>
 
