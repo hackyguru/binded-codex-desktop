@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GrNodes } from 'react-icons/gr';
 import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useDebugInfo } from '../../hooks/useDebugInfo';
 import { useGeoLocation } from '../../hooks/useGeoLocation';
+// @ts-ignore
+import DottedMap from 'dotted-map';
 
 interface NetworkStatusProps {
   connectionStatus?: string;
@@ -40,6 +42,183 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
     if (!address) return 'N/A';
     return address.length > 30 ? `${address.substring(0, 30)}...` : address;
   };
+
+  // World map component using dotted-map library
+const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
+  const [mapSvg, setMapSvg] = useState<string>('');
+
+  // Get unique countries from geo data with coordinates
+  const nodeLocations = Object.values(geoData)
+    .filter((geo: any) => geo && geo.countryCode && geo.countryCode !== 'LOCAL')
+    .map((geo: any) => ({
+      countryCode: geo.countryCode,
+      country: geo.country,
+      city: geo.city
+    }));
+
+  const uniqueCountries = nodeLocations.filter((location, index, self) => 
+    index === self.findIndex(l => l.countryCode === location.countryCode)
+  );
+
+  useEffect(() => {
+    const generateMap = async () => {
+      try {
+        // Create the map using the imported DottedMap
+        const map = new (DottedMap as any)({ 
+          height: 60, 
+          grid: 'diagonal',
+          avoidCollisions: true
+        });
+
+        // Add pins for each unique country
+        uniqueCountries.forEach((location) => {
+          try {
+            map.addPin({
+              lat: getCountryLatLng(location.countryCode).lat,
+              lng: getCountryLatLng(location.countryCode).lng,
+              svgOptions: { 
+                color: '#6BE4A8', 
+                radius: 1.2,
+                opacity: 0.9
+              }
+            });
+          } catch (error) {
+            console.warn(`Could not add pin for ${location.countryCode}:`, error);
+          }
+        });
+
+        // Generate SVG with transparent background
+        const svgMap = map.getSVG({
+          radius: 0.18,
+          color: '#404040', // Pure gray for dots
+          shape: 'circle',
+          backgroundColor: 'transparent'
+        });
+
+        setMapSvg(svgMap);
+      } catch (error) {
+        console.error('Error generating dotted map:', error);
+        // Fallback to simple text if dotted-map fails
+        setMapSvg('<svg><text x="50%" y="50%" text-anchor="middle" fill="#6B7280">Map loading...</text></svg>');
+      }
+    };
+
+    if (uniqueCountries.length > 0) {
+      generateMap();
+    }
+  }, [uniqueCountries.length]);
+
+  // Simple country coordinates lookup (approximate)
+  const getCountryLatLng = (countryCode: string): { lat: number; lng: number } => {
+    const coordinates: Record<string, { lat: number; lng: number }> = {
+      'US': { lat: 39.8283, lng: -98.5795 },
+      'CA': { lat: 56.1304, lng: -106.3468 },
+      'GB': { lat: 55.3781, lng: -3.4360 },
+      'DE': { lat: 51.1657, lng: 10.4515 },
+      'FR': { lat: 46.2276, lng: 2.2137 },
+      'IT': { lat: 41.8719, lng: 12.5674 },
+      'ES': { lat: 40.4637, lng: -3.7492 },
+      'NL': { lat: 52.1326, lng: 5.2913 },
+      'SE': { lat: 60.1282, lng: 18.6435 },
+      'NO': { lat: 60.4720, lng: 8.4689 },
+      'FI': { lat: 61.9241, lng: 25.7482 },
+      'PL': { lat: 51.9194, lng: 19.1451 },
+      'RU': { lat: 61.5240, lng: 105.3188 },
+      'CN': { lat: 35.8617, lng: 104.1954 },
+      'JP': { lat: 36.2048, lng: 138.2529 },
+      'KR': { lat: 35.9078, lng: 127.7669 },
+      'IN': { lat: 20.5937, lng: 78.9629 },
+      'AU': { lat: -25.2744, lng: 133.7751 },
+      'BR': { lat: -14.2350, lng: -51.9253 },
+      'AR': { lat: -38.4161, lng: -63.6167 },
+      'ZA': { lat: -30.5595, lng: 22.9375 },
+      'EG': { lat: 26.0975, lng: 31.1309 },
+      'NG': { lat: 9.0820, lng: 8.6753 },
+      'KE': { lat: -0.0236, lng: 37.9062 },
+      'MX': { lat: 23.6345, lng: -102.5528 },
+      'SG': { lat: 1.3521, lng: 103.8198 },
+      'TH': { lat: 15.8700, lng: 100.9925 },
+      'VN': { lat: 14.0583, lng: 108.2772 },
+      'ID': { lat: -0.7893, lng: 113.9213 },
+      'MY': { lat: 4.2105, lng: 101.9758 },
+      'PH': { lat: 12.8797, lng: 121.7740 },
+      'TR': { lat: 38.9637, lng: 35.2433 },
+      'IR': { lat: 32.4279, lng: 53.6880 },
+      'SA': { lat: 23.8859, lng: 45.0792 },
+      'AE': { lat: 23.4241, lng: 53.8478 },
+      'IL': { lat: 31.0461, lng: 34.8516 },
+      'UA': { lat: 48.3794, lng: 31.1656 },
+      'CZ': { lat: 49.8175, lng: 15.4730 },
+      'AT': { lat: 47.5162, lng: 14.5501 },
+      'CH': { lat: 46.8182, lng: 8.2275 },
+      'BE': { lat: 50.5039, lng: 4.4699 },
+      'DK': { lat: 56.2639, lng: 9.5018 },
+      'IE': { lat: 53.1424, lng: -7.6921 },
+      'PT': { lat: 39.3999, lng: -8.2245 },
+      'GR': { lat: 39.0742, lng: 21.8243 },
+      'BG': { lat: 42.7339, lng: 25.4858 },
+      'RO': { lat: 45.9432, lng: 24.9668 },
+      'HU': { lat: 47.1625, lng: 19.5033 },
+      'SK': { lat: 48.6690, lng: 19.6990 },
+      'SI': { lat: 46.1512, lng: 14.9955 },
+      'HR': { lat: 45.1000, lng: 15.2000 },
+      'RS': { lat: 44.0165, lng: 21.0059 },
+      'BA': { lat: 43.9159, lng: 17.6791 },
+      'ME': { lat: 42.7087, lng: 19.3744 },
+      'MK': { lat: 41.6086, lng: 21.7453 },
+      'AL': { lat: 41.1533, lng: 20.1683 },
+      'LT': { lat: 55.1694, lng: 23.8813 },
+      'LV': { lat: 56.8796, lng: 24.6032 },
+      'EE': { lat: 58.5953, lng: 25.0136 },
+      'BY': { lat: 53.7098, lng: 27.9534 },
+      'MD': { lat: 47.4116, lng: 28.3699 },
+    };
+    
+    return coordinates[countryCode] || { lat: 0, lng: 0 };
+  };
+
+      return (
+      <div className="bg-black/20 rounded-xl p-6">
+        <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2 text-[#6BE4A8]" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+          </svg>
+          Global Network Map
+        </h4>
+        
+        <div className="relative w-full h-[32rem] bg-black/10 rounded-lg border border-gray-800/50 overflow-hidden p-4">
+        {mapSvg ? (
+          <div 
+            className="w-full h-full flex items-center justify-center"
+          >
+            <div 
+              className="w-full h-full"
+              dangerouslySetInnerHTML={{ __html: mapSvg }}
+              style={{
+                filter: 'drop-shadow(0 0 10px rgba(107, 228, 168, 0.1))'
+              }}
+            />
+          </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6BE4A8] mx-auto mb-2"></div>
+              <p className="text-sm">Loading world map...</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Legend */}
+        <div className="absolute bottom-3 right-3 bg-gray-900/80 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
+          <div className="flex items-center space-x-2 text-sm text-gray-300">
+            <div className="w-3 h-3 bg-[#6BE4A8] rounded-full shadow-lg shadow-[#6BE4A8]/30"></div>
+            <span>Active Nodes ({uniqueCountries.length})</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -109,7 +288,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
       ) : debugInfo ? (
         <div className="flex-1 overflow-y-auto space-y-6">
           {/* Node Identity */}
-          <div className="bg-[#151515] rounded-xl p-6">
+          <div className="bg-black/20 rounded-xl p-6">
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
               <FiInfo className="w-5 h-5 mr-2 text-[#6BE4A8]" />
               Node Identity
@@ -135,21 +314,21 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
           </div>
 
           {/* Version Information */}
-          <div className="bg-[#151515] rounded-xl p-6">
+          <div className="bg-black/20 rounded-xl p-6">
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
               <FiGitBranch className="w-5 h-5 mr-2 text-[#6BE4A8]" />
               Version Information
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-800/30 rounded-lg p-4">
+              <div className="bg-black/20 rounded-lg p-4">
                 <p className="text-sm text-gray-400">Version</p>
                 <p className="text-white font-semibold">{debugInfo.codex.version}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg p-4">
+              <div className="bg-black/20 rounded-lg p-4">
                 <p className="text-sm text-gray-400">Revision</p>
                 <p className="text-white font-mono">{debugInfo.codex.revision}</p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg p-4">
+              <div className="bg-black/20 rounded-lg p-4">
                 <p className="text-sm text-gray-400">Contracts</p>
                 <p className="text-white font-mono">{debugInfo.codex.contracts}</p>
               </div>
@@ -157,7 +336,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
           </div>
 
           {/* Network Addresses */}
-          <div className="bg-[#151515] rounded-xl p-6">
+          <div className="bg-black/20 rounded-xl p-6">
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
               <FiMapPin className="w-5 h-5 mr-2 text-[#6BE4A8]" />
               Network Addresses
@@ -167,7 +346,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
                 <p className="text-sm text-gray-400 mb-3">Listening Addresses</p>
                 <div className="space-y-2">
                   {debugInfo.addrs.map((addr, index) => (
-                    <div key={index} className="bg-gray-800/30 rounded-lg p-3">
+                    <div key={index} className="bg-black/20 rounded-lg p-3">
                       <p className="text-white font-mono text-sm">{addr}</p>
                     </div>
                   ))}
@@ -177,7 +356,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
                 <p className="text-sm text-gray-400 mb-3">Announce Addresses</p>
                 <div className="space-y-2">
                   {debugInfo.announceAddresses.map((addr, index) => (
-                    <div key={index} className="bg-gray-800/30 rounded-lg p-3">
+                    <div key={index} className="bg-black/20 rounded-lg p-3">
                       <p className="text-white font-mono text-sm">{addr}</p>
                     </div>
                   ))}
@@ -187,12 +366,12 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
           </div>
 
           {/* Local Node */}
-          <div className="bg-[#151515] rounded-xl p-6">
+          <div className="bg-black/20 rounded-xl p-6">
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
               <GrNodes className="w-5 h-5 mr-2 text-[#6BE4A8]" />
               Local Node
             </h4>
-            <div className="bg-gray-800/30 rounded-lg p-4">
+            <div className="bg-black/20 rounded-lg p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div>
@@ -222,8 +401,11 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
             </div>
           </div>
 
+          {/* Global Network Map */}
+          <WorldMap geoData={geoData} />
+
           {/* Connected Nodes */}
-          <div className="bg-[#151515] rounded-xl p-6">
+          <div className="bg-black/20 rounded-xl p-6">
             <h4 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
               <div className="flex items-center">
                 <FiUsers className="w-5 h-5 mr-2 text-[#6BE4A8]" />
@@ -244,7 +426,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
                 {debugInfo.table.nodes.map((node, index) => {
                   const geoInfo = geoData[node.address];
                   return (
-                    <div key={index} className="bg-gray-800/30 rounded-lg p-4">
+                    <div key={index} className="bg-black/20 rounded-lg p-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <div>
