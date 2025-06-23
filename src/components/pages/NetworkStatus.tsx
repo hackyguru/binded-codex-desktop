@@ -355,6 +355,9 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-6">
+          {/* Global Network Map */}
+          <WorldMap geoData={geoData} />
+
           {/* Network Information Header */}
           <div className='flex items-center justify-between'>
             <div className="flex items-center space-x-3">
@@ -518,9 +521,6 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
                   </div>
                 </div>
               </div>
-
-              {/* Global Network Map */}
-              <WorldMap geoData={geoData} />
 
               {/* Connected Nodes */}
               <div className="bg-black/20 rounded-xl p-6">

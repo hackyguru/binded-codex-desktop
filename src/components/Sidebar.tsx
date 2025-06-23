@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiHome, FiSearch, FiSettings, FiMoon } from 'react-icons/fi';
+import { FiHome, FiSettings, FiMoon } from 'react-icons/fi';
 import { AiOutlineNodeIndex } from 'react-icons/ai';
 import { GrNodes } from 'react-icons/gr';
 
@@ -33,12 +33,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
           label="Node"
           active={activePage === 'Node'}
           onClick={() => setActivePage('Node')}
-        />
-        <SidebarIcon
-          icon={<FiSearch size={18} />}
-          label="Search"
-          active={activePage === 'Search'}
-          onClick={() => setActivePage('Search')}
         />
         <SidebarIcon
           icon={<GrNodes size={18} />}
