@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { GrNodes } from 'react-icons/gr';
 import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useDebugInfo } from '../../hooks/useDebugInfo';
@@ -17,11 +17,34 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
   isConnected = false, 
   apiPort = '8080' 
 }) => {
+  const [isScrolling, setIsScrolling] = useState(false);
   const { debugInfo, isLoading, error, refetch } = useDebugInfo(apiPort, isConnected);
   
   // Get geo location info for connected nodes
   const nodeAddresses = debugInfo?.table.nodes.map(node => node.address) || [];
   const { geoData, loading: geoLoading, refresh: refreshGeo } = useGeoLocation(nodeAddresses);
+
+  // Detect scrolling to pause updates
+  useEffect(() => {
+    let scrollTimeout: number;
+    
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150); // Consider scrolling stopped after 150ms of no scroll events
+    };
+
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        clearTimeout(scrollTimeout);
+      };
+    }
+  }, []);
 
   // Add a way to force refresh geo data
   const handleRefreshWithGeo = () => {
@@ -44,69 +67,106 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
   };
 
   // World map component using dotted-map library
-const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
+const WorldMap = ({ geoData, isScrolling }: { geoData: Record<string, any>, isScrolling: boolean }) => {
   const [mapSvg, setMapSvg] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Get unique countries from geo data with coordinates
-  const nodeLocations = Object.values(geoData)
-    .filter((geo: any) => geo && geo.countryCode && geo.countryCode !== 'LOCAL')
-    .map((geo: any) => ({
-      countryCode: geo.countryCode,
-      country: geo.country,
-      city: geo.city
-    }));
+  // Memoize unique countries calculation to avoid unnecessary recalculations
+  const uniqueCountries = useMemo(() => {
+    const nodeLocations = Object.values(geoData)
+      .filter((geo: any) => geo && geo.countryCode && geo.countryCode !== 'LOCAL')
+      .map((geo: any) => ({
+        countryCode: geo.countryCode,
+        country: geo.country,
+        city: geo.city
+      }));
 
-  const uniqueCountries = nodeLocations.filter((location, index, self) => 
-    index === self.findIndex(l => l.countryCode === location.countryCode)
-  );
+    return nodeLocations.filter((location, index, self) => 
+      index === self.findIndex(l => l.countryCode === location.countryCode)
+    );
+  }, [geoData]);
 
+  // Create a stable string representation of country codes for comparison
+  const countryCodesString = useMemo(() => {
+    return uniqueCountries
+      .map((country: any) => country.countryCode)
+      .sort()
+      .join(',');
+  }, [uniqueCountries]);
+
+  // Memoize the map generation function
+  const generateMap = useCallback(async () => {
+    // Skip generation if already generating or if scrolling
+    if (isGenerating || isScrolling) {
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      // Create the map using the imported DottedMap with lighter settings
+      const map = new (DottedMap as any)({ 
+        height: 50, // Reduced height for better performance
+        grid: 'vertical', // Simpler grid pattern
+        avoidCollisions: false // Disable collision detection for better performance
+      });
+
+      // Add pins for each unique country (if any)
+      uniqueCountries.forEach((location: any) => {
+        try {
+          map.addPin({
+            lat: getCountryLatLng(location.countryCode).lat,
+            lng: getCountryLatLng(location.countryCode).lng,
+            svgOptions: { 
+              color: '#6BE4A8', 
+              radius: 1.0, // Slightly smaller radius
+              opacity: 0.8
+            }
+          });
+        } catch (error) {
+          console.warn(`Could not add pin for ${location.countryCode}:`, error);
+        }
+      });
+
+      // Generate SVG with transparent background
+      const svgMap = map.getSVG({
+        radius: 0.15, // Smaller dots for better performance
+        color: '#404040', // Pure gray for dots
+        shape: 'circle',
+        backgroundColor: 'transparent'
+      });
+
+      setMapSvg(svgMap);
+    } catch (error) {
+      console.error('Error generating dotted map:', error);
+      // Fallback to simple text if dotted-map fails
+      setMapSvg('<svg><text x="50%" y="50%" text-anchor="middle" fill="#6B7280">Map unavailable</text></svg>');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [uniqueCountries, isGenerating, isScrolling]);
+
+  // Generate map only when country codes actually change (less frequent updates)
   useEffect(() => {
-    const generateMap = async () => {
-      try {
-        // Create the map using the imported DottedMap
-        const map = new (DottedMap as any)({ 
-          height: 60, 
-          grid: 'diagonal',
-          avoidCollisions: true
-        });
+    // Don't generate map while scrolling for better performance
+    if (isScrolling) {
+      return;
+    }
 
-        // Add pins for each unique country
-        uniqueCountries.forEach((location) => {
-          try {
-            map.addPin({
-              lat: getCountryLatLng(location.countryCode).lat,
-              lng: getCountryLatLng(location.countryCode).lng,
-              svgOptions: { 
-                color: '#6BE4A8', 
-                radius: 1.2,
-                opacity: 0.9
-              }
-            });
-          } catch (error) {
-            console.warn(`Could not add pin for ${location.countryCode}:`, error);
-          }
-        });
+    // Add a delay to prevent rapid re-generation during scrolling
+    const timeoutId = setTimeout(() => {
+      generateMap();
+    }, 1000); // 1 second delay
 
-        // Generate SVG with transparent background
-        const svgMap = map.getSVG({
-          radius: 0.18,
-          color: '#404040', // Pure gray for dots
-          shape: 'circle',
-          backgroundColor: 'transparent'
-        });
+    return () => clearTimeout(timeoutId);
+  }, [countryCodesString, isScrolling]);
 
-        setMapSvg(svgMap);
-      } catch (error) {
-        console.error('Error generating dotted map:', error);
-        // Fallback to simple text if dotted-map fails
-        setMapSvg('<svg><text x="50%" y="50%" text-anchor="middle" fill="#6B7280">Map loading...</text></svg>');
-      }
-    };
-
-    if (uniqueCountries.length > 0) {
+  // Generate initial empty map on first mount only
+  useEffect(() => {
+    if (!mapSvg) {
       generateMap();
     }
-  }, [uniqueCountries.length]);
+  }, []); // Empty dependency array - only run once
 
   // Simple country coordinates lookup (approximate)
   const getCountryLatLng = (countryCode: string): { lat: number; lng: number } => {
@@ -189,15 +249,21 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
         <div className="relative w-full h-[32rem] bg-black/10 rounded-lg border border-gray-800/50 overflow-hidden p-4">
         {mapSvg ? (
           <div 
-            className="w-full h-full flex items-center justify-center"
+            className="w-full h-full flex items-center justify-center relative"
           >
             <div 
-              className="w-full h-full"
+              className={`w-full h-full transition-opacity duration-300 ${isGenerating ? 'opacity-50' : 'opacity-100'}`}
               dangerouslySetInnerHTML={{ __html: mapSvg }}
               style={{
                 filter: 'drop-shadow(0 0 10px rgba(107, 228, 168, 0.1))'
               }}
             />
+            {/* Subtle loading indicator when updating */}
+            {isGenerating && (
+              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg p-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#6BE4A8]"></div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -209,7 +275,7 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
         )}
         
         {/* Legend */}
-        <div className="absolute bottom-3 right-3 bg-gray-900/80 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50">
+        <div className="absolute bottom-3 right-3 bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-gray-800/50">
           <div className="flex items-center space-x-2 text-sm text-gray-300">
             <div className="w-3 h-3 bg-[#6BE4A8] rounded-full shadow-lg shadow-[#6BE4A8]/30"></div>
             <span>Active Nodes ({uniqueCountries.length})</span>
@@ -259,25 +325,7 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
         </div>
       </div>
 
-      {/* Network Information */}
-      <div className='flex items-center justify-between mb-4'>
-        <h3 className="text-lg font-semibold text-white">Network Information</h3>
-        <button
-          onClick={refetch}
-          className="px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-[#6BE4A8]"
-          aria-label="Refresh network info"
-          title="Refresh network info"
-        >
-          <FiRotateCcw className="w-4 h-4 mr-1" />
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex-1 bg-[#151515] rounded-xl p-6 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6BE4A8] mb-4"></div>
-          <p className="text-gray-400 ml-4">Loading network information...</p>
-        </div>
-      ) : error ? (
+      {error ? (
         <div className="flex-1 bg-[#151515] rounded-xl p-6 flex flex-col items-center justify-center text-center">
           <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
             <FiWifi className="w-10 h-10 text-red-500" />
@@ -285,207 +333,368 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
           <h2 className="text-xl font-bold text-white mb-4">Network Error</h2>
           <p className="text-gray-400 max-w-md">{error}</p>
         </div>
-      ) : debugInfo ? (
+      ) : (
         <div className="flex-1 overflow-y-auto space-y-6">
+          {/* Network Information Header */}
+          <div className='flex items-center justify-between'>
+            <div className="flex items-center space-x-3">
+              <h3 className="text-lg font-semibold text-white">Network Information</h3>
+              {isLoading && (
+                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#6BE4A8]"></div>
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={refetch}
+              className="px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] hover:text-white transition-colors"
+              aria-label="Refresh network info"
+              title="Refresh network info"
+            >
+              <FiRotateCcw className={`w-4 h-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+
           {/* Node Identity */}
-          <div className="bg-black/20 rounded-xl p-6">
-            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <FiInfo className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-              Node Identity
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-400">Node ID</p>
-                  <p className="text-white font-mono text-sm break-all">{debugInfo.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Repository</p>
-                  <p className="text-white font-mono text-sm">{debugInfo.repo}</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-400">SPR</p>
-                  <p className="text-white font-mono text-sm break-all">{debugInfo.spr}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Version Information */}
-          <div className="bg-black/20 rounded-xl p-6">
-            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <FiGitBranch className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-              Version Information
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-black/20 rounded-lg p-4">
-                <p className="text-sm text-gray-400">Version</p>
-                <p className="text-white font-semibold">{debugInfo.codex.version}</p>
-              </div>
-              <div className="bg-black/20 rounded-lg p-4">
-                <p className="text-sm text-gray-400">Revision</p>
-                <p className="text-white font-mono">{debugInfo.codex.revision}</p>
-              </div>
-              <div className="bg-black/20 rounded-lg p-4">
-                <p className="text-sm text-gray-400">Contracts</p>
-                <p className="text-white font-mono">{debugInfo.codex.contracts}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Network Addresses */}
-          <div className="bg-black/20 rounded-xl p-6">
-            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <FiMapPin className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-              Network Addresses
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-gray-400 mb-3">Listening Addresses</p>
-                <div className="space-y-2">
-                  {debugInfo.addrs.map((addr, index) => (
-                    <div key={index} className="bg-black/20 rounded-lg p-3">
-                      <p className="text-white font-mono text-sm">{addr}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400 mb-3">Announce Addresses</p>
-                <div className="space-y-2">
-                  {debugInfo.announceAddresses.map((addr, index) => (
-                    <div key={index} className="bg-black/20 rounded-lg p-3">
-                      <p className="text-white font-mono text-sm">{addr}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Local Node */}
-          <div className="bg-black/20 rounded-xl p-6">
-            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <GrNodes className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-              Local Node
-            </h4>
-            <div className="bg-black/20 rounded-lg p-4">
+          {debugInfo && (
+            <div className="bg-black/20 rounded-xl p-6">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <FiInfo className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+                Node Identity
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-400">Node ID</p>
-                    <p className="text-white font-mono text-sm">{formatNodeId(debugInfo.table.localNode.nodeId)}</p>
+                    <p className="text-white font-mono text-sm break-all">{debugInfo.id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400">Peer ID</p>
-                    <p className="text-white font-mono text-sm">{formatNodeId(debugInfo.table.localNode.peerId)}</p>
+                    <p className="text-sm text-gray-400">Repository</p>
+                    <p className="text-white font-mono text-sm">{debugInfo.repo}</p>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-400">Address</p>
-                    <p className="text-white font-mono text-sm">{formatAddress(debugInfo.table.localNode.address)}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <p className="text-sm text-gray-400 mr-2">Seen</p>
-                    {debugInfo.table.localNode.seen ? (
-                      <FiEye className="w-4 h-4 text-[#6BE4A8]" />
-                    ) : (
-                      <FiEyeOff className="w-4 h-4 text-gray-500" />
-                    )}
+                    <p className="text-sm text-gray-400">SPR</p>
+                    <p className="text-white font-mono text-sm break-all">{debugInfo.spr}</p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Global Network Map */}
-          <WorldMap geoData={geoData} />
-
-          {/* Connected Nodes */}
-          <div className="bg-black/20 rounded-xl p-6">
-            <h4 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
-              <div className="flex items-center">
-                <FiUsers className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-                Connected Nodes ({debugInfo.table.nodes.length})
+          {/* Version Information */}
+          {debugInfo && (
+            <>
+              <div className="bg-black/20 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <FiGitBranch className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+                  Version Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <p className="text-sm text-gray-400">Version</p>
+                    <p className="text-white font-semibold">{debugInfo.codex.version}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <p className="text-sm text-gray-400">Revision</p>
+                    <p className="text-white font-mono">{debugInfo.codex.revision}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <p className="text-sm text-gray-400">Contracts</p>
+                    <p className="text-white font-mono">{debugInfo.codex.contracts}</p>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={refreshGeo}
-                disabled={geoLoading}
-                className="px-2 py-1 text-xs text-[#6BE4A8] rounded flex items-center focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] hover:text-white transition-colors disabled:opacity-50"
-                aria-label="Refresh geo flags"
-                title="Refresh country flags"
-              >
-                {geoLoading ? '🔄 Loading...' : '🌍 Refresh Flags'}
-              </button>
-            </h4>
-            {debugInfo.table.nodes.length > 0 ? (
-              <div className="space-y-3">
-                {debugInfo.table.nodes.map((node, index) => {
-                  const geoInfo = geoData[node.address];
-                  return (
-                    <div key={index} className="bg-black/20 rounded-lg p-4">
+
+              {/* Network Addresses */}
+              <div className="bg-black/20 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <FiMapPin className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+                  Network Addresses
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-3">Listening Addresses</p>
+                    <div className="space-y-2">
+                      {debugInfo.addrs.map((addr, index) => (
+                        <div key={index} className="bg-black/20 rounded-lg p-3">
+                          <p className="text-white font-mono text-sm">{addr}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400 mb-3">Announce Addresses</p>
+                    <div className="space-y-2">
+                      {debugInfo.announceAddresses.map((addr, index) => (
+                        <div key={index} className="bg-black/20 rounded-lg p-3">
+                          <p className="text-white font-mono text-sm">{addr}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Local Node */}
+              <div className="bg-black/20 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <GrNodes className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+                  Local Node
+                </h4>
+                <div className="bg-black/20 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-400">Node ID</p>
+                        <p className="text-white font-mono text-sm">{formatNodeId(debugInfo.table.localNode.nodeId)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Peer ID</p>
+                        <p className="text-white font-mono text-sm">{formatNodeId(debugInfo.table.localNode.peerId)}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-400">Address</p>
+                        <p className="text-white font-mono text-sm">{formatAddress(debugInfo.table.localNode.address)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Global Network Map */}
+              <WorldMap geoData={geoData} isScrolling={isScrolling} />
+
+              {/* Connected Nodes */}
+              <div className="bg-black/20 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FiUsers className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+                    Connected Nodes ({debugInfo.table.nodes.length})
+                  </div>
+                  <button
+                    onClick={refreshGeo}
+                    disabled={geoLoading}
+                    className="px-2 py-1 text-xs text-[#6BE4A8] rounded flex items-center focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] hover:text-white transition-colors disabled:opacity-50"
+                    aria-label="Refresh geo flags"
+                    title="Refresh country flags"
+                  >
+                    {geoLoading ? '🔄 Loading...' : '🌍 Refresh Flags'}
+                  </button>
+                </h4>
+                {debugInfo.table.nodes.length > 0 ? (
+                  <div className="space-y-3">
+                    {debugInfo.table.nodes.map((node, index) => {
+                      const geoInfo = geoData[node.address];
+                      return (
+                        <div key={index} className="bg-black/20 rounded-lg p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <div>
+                                <p className="text-sm text-gray-400">Node ID</p>
+                                <p className="text-white font-mono text-sm">{formatNodeId(node.nodeId)}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">Peer ID</p>
+                                <p className="text-white font-mono text-sm">{formatNodeId(node.peerId)}</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <p className="text-sm text-gray-400">Address</p>
+                                <p className="text-white font-mono text-sm">{formatAddress(node.address)}</p>
+                                {geoInfo && (
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-lg" title={`${geoInfo.country}${geoInfo.city ? `, ${geoInfo.city}` : ''}`}>
+                                      {geoInfo.flag}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {geoInfo.country}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FiUsers className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                    <p className="text-gray-400">No connected nodes found</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Loading skeletons only on initial load (no previous data) */}
+          {!debugInfo && isLoading && (
+            <>
+              {/* Node Identity Skeleton */}
+              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+                <div className="flex items-center mb-4">
+                  <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
+                  <div className="h-6 bg-gray-600 rounded w-32"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                      <div className="h-4 bg-gray-700 rounded w-full"></div>
+                    </div>
+                    <div>
+                      <div className="h-4 bg-gray-600 rounded w-20 mb-2"></div>
+                      <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="h-4 bg-gray-600 rounded w-12 mb-2"></div>
+                      <div className="h-4 bg-gray-700 rounded w-full"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Version Information Skeleton */}
+              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+                <div className="flex items-center mb-4">
+                  <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
+                  <div className="h-6 bg-gray-600 rounded w-40"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                    <div className="h-5 bg-gray-700 rounded w-20"></div>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-24"></div>
+                  </div>
+                  <div className="bg-black/20 rounded-lg p-4">
+                    <div className="h-4 bg-gray-600 rounded w-20 mb-2"></div>
+                    <div className="h-4 bg-gray-700 rounded w-28"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Network Addresses Skeleton */}
+              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+                <div className="flex items-center mb-4">
+                  <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
+                  <div className="h-6 bg-gray-600 rounded w-36"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="h-4 bg-gray-600 rounded w-32 mb-3"></div>
+                    <div className="space-y-2">
+                      <div className="bg-black/20 rounded-lg p-3">
+                        <div className="h-4 bg-gray-700 rounded w-full"></div>
+                      </div>
+                      <div className="bg-black/20 rounded-lg p-3">
+                        <div className="h-4 bg-gray-700 rounded w-5/6"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="h-4 bg-gray-600 rounded w-36 mb-3"></div>
+                    <div className="space-y-2">
+                      <div className="bg-black/20 rounded-lg p-3">
+                        <div className="h-4 bg-gray-700 rounded w-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Local Node Skeleton */}
+              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+                <div className="flex items-center mb-4">
+                  <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
+                  <div className="h-6 bg-gray-600 rounded w-24"></div>
+                </div>
+                <div className="bg-black/20 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div>
+                        <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                        <div className="h-4 bg-gray-700 rounded w-full"></div>
+                      </div>
+                      <div>
+                        <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                        <div className="h-4 bg-gray-700 rounded w-full"></div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                        <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connected Nodes Skeleton */}
+              <div className={`bg-black/20 rounded-xl p-6 ${isScrolling ? '' : 'animate-pulse'}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 bg-gray-600 rounded mr-2"></div>
+                    <div className="h-6 bg-gray-600 rounded w-36"></div>
+                  </div>
+                  <div className="h-6 bg-gray-600 rounded w-24"></div>
+                </div>
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="bg-black/20 rounded-lg p-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <div>
-                            <p className="text-sm text-gray-400">Node ID</p>
-                            <p className="text-white font-mono text-sm">{formatNodeId(node.nodeId)}</p>
+                            <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                            <div className="h-4 bg-gray-700 rounded w-full"></div>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-400">Peer ID</p>
-                            <p className="text-white font-mono text-sm">{formatNodeId(node.peerId)}</p>
+                            <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                            <div className="h-4 bg-gray-700 rounded w-full"></div>
                           </div>
                         </div>
                         <div className="space-y-2">
                           <div>
-                            <p className="text-sm text-gray-400">Address</p>
+                            <div className="h-4 bg-gray-600 rounded w-16 mb-2"></div>
+                            <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
                             <div className="flex items-center space-x-2">
-                              <p className="text-white font-mono text-sm">{formatAddress(node.address)}</p>
-                              {geoInfo && (
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-lg" title={`${geoInfo.country}${geoInfo.city ? `, ${geoInfo.city}` : ''}`}>
-                                    {geoInfo.flag}
-                                  </span>
-                                  <span className="text-xs text-gray-400 hidden sm:inline">
-                                    {geoInfo.country}
-                                  </span>
-                                </div>
-                              )}
+                              <div className="w-5 h-5 bg-gray-600 rounded"></div>
+                              <div className="h-3 bg-gray-700 rounded w-20"></div>
                             </div>
-                          </div>
-                          <div className="flex items-center">
-                            <p className="text-sm text-gray-400 mr-2">Seen</p>
-                            {node.seen ? (
-                              <FiEye className="w-4 h-4 text-[#6BE4A8]" />
-                            ) : (
-                              <FiEyeOff className="w-4 h-4 text-gray-500" />
-                            )}
                           </div>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <FiUsers className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400">No connected nodes found</p>
+            </>
+          )}
+
+          {/* Show placeholder when no debug info and not loading */}
+          {!debugInfo && !isLoading && (
+            <div className="flex-1 bg-[#151515] rounded-xl p-6 flex flex-col items-center justify-center text-center">
+              <div className="w-20 h-20 bg-[#6BE4A8]/20 rounded-full flex items-center justify-center mb-6">
+                <GrNodes className="w-10 h-10 text-[#6BE4A8]" />
               </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 bg-[#151515] rounded-xl p-6 flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 bg-[#6BE4A8]/20 rounded-full flex items-center justify-center mb-6">
-            <GrNodes className="w-10 h-10 text-[#6BE4A8]" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-4">Network Status</h2>
-          <p className="text-gray-400 max-w-md mb-6">
-            Connect to your Codex node to view detailed network information.
-          </p>
+              <h2 className="text-xl font-bold text-white mb-4">Network Status</h2>
+              <p className="text-gray-400 max-w-md mb-6">
+                Connect to your Codex node to view detailed network information.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

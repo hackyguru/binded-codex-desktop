@@ -11,6 +11,7 @@ interface GeoInfo {
 export const useGeoLocation = (addresses: string[]) => {
   const [geoData, setGeoData] = useState<Record<string, GeoInfo>>({});
   const [loading, setLoading] = useState(false);
+  const [lastProcessedAddresses, setLastProcessedAddresses] = useState<string>('');
 
   // Function to extract IP from various address formats
   const extractIP = (address: string): string | null => {
@@ -104,10 +105,10 @@ export const useGeoLocation = (addresses: string[]) => {
     } catch (error) {
       console.error('Error fetching geo data for', ip, ':', error);
       return {
-        country: 'Error',
+        country: 'Unknown',
         countryCode: '',
-        flag: '❌',
-        city: 'Error'
+        flag: '🌍',
+        city: 'Unknown'
       };
     }
   };
@@ -159,13 +160,18 @@ export const useGeoLocation = (addresses: string[]) => {
   };
 
   useEffect(() => {
-    if (addresses.length > 0) {
+    const addressesString = addresses.join(',');
+    
+    // Only process if addresses have actually changed
+    if (addresses.length > 0 && addressesString !== lastProcessedAddresses) {
+      console.log('Addresses changed, processing geo data...');
+      setLastProcessedAddresses(addressesString);
       processAddresses();
     }
-  }, [addresses.join(',')]);
+  }, [addresses.join(','), lastProcessedAddresses]);
 
   const refresh = () => {
-    console.log('Refreshing geo data...');
+    console.log('Manually refreshing geo data...');
     processAddresses();
   };
 
