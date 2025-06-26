@@ -3,7 +3,6 @@ import {
   FiCopy, 
   FiDownload, 
   FiMonitor,
-  FiLoader,
   FiCheck,
   FiPlayCircle,
   FiSave,
@@ -14,7 +13,7 @@ import { FaSeedling } from 'react-icons/fa';
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
 interface FileCardProps {
-  fileName: string;
+  fileName: string | null;
   fileType: string;
   fileSize: string;
   progress: number;
@@ -68,7 +67,7 @@ const FileCard: React.FC<FileCardProps> = ({
         disabled={!onDownload || downloadState === 'downloading'}
         className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {downloadState === 'downloading' ? <FiLoader size={16} className="animate-spin" /> : (downloadState === 'completed' ? <FiCheck size={16} /> : <FiDownload size={16} />)}
+        {downloadState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" /> : (downloadState === 'completed' ? <FiCheck size={16} /> : <FiDownload size={16} />)}
       </button>
       <button 
         onClick={handleCopyClick}
@@ -87,7 +86,7 @@ const FileCard: React.FC<FileCardProps> = ({
         disabled={leechState === 'downloading' || seedState === 'downloading'}
         className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 clip-path-hexagon text-sm disabled:opacity-50"
       >
-        {leechState === 'downloading' ? <FiLoader className="animate-spin" /> : <FiPlayCircle />}
+        {leechState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-5 h-5 animate-pulse" /> : <FiPlayCircle />}
         <span>LEECH</span>
       </button>
       <button
@@ -95,7 +94,7 @@ const FileCard: React.FC<FileCardProps> = ({
         disabled={leechState === 'downloading' || seedState === 'downloading'}
         className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 clip-path-hexagon text-sm disabled:opacity-50"
       >
-        {seedState === 'downloading' ? <FiLoader className="animate-spin" /> : <FiSave />}
+        {seedState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-5 h-5 animate-pulse" /> : <FiSave />}
         <span>SEED</span>
       </button>
     </>
@@ -120,7 +119,7 @@ const FileCard: React.FC<FileCardProps> = ({
         className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white mb-1 disabled:opacity-50 disabled:cursor-not-allowed"
         title="Seed file to local node"
       >
-        {seedToNodeState === 'downloading' ? <FiLoader size={16} className="animate-spin" /> : (seedToNodeState === 'completed' ? <FiCheck size={16} /> : <FaSeedling size={16} />)}
+        {seedToNodeState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" /> : (seedToNodeState === 'completed' ? <FiCheck size={16} /> : <FaSeedling size={16} />)}
       </button>
     );
   };
@@ -142,7 +141,7 @@ const FileCard: React.FC<FileCardProps> = ({
 
       {/* File Info & Progress */}
       <div className="flex-grow overflow-hidden">
-        <p className="text-white font-medium truncate mb-2">{fileName}</p>
+        <p className="text-white font-medium truncate mb-2">{fileName || 'unnamed'}</p>
         <div className="flex items-center gap-4 text-gray-400 text-sm mb-3">
           <span>{fileSize}</span>
         </div>

@@ -281,14 +281,22 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
             {/* Subtle loading indicator when updating */}
             {isGenerating && (
               <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg p-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#6BE4A8]"></div>
+                <img
+                  src="src/assets/logo.png"
+                  alt="Loading"
+                  className="w-4 h-4 animate-pulse"
+                />
               </div>
             )}
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6BE4A8] mx-auto mb-2"></div>
+              <img
+                src="src/assets/logo.png"
+                alt="Loading"
+                className="w-8 h-8 mx-auto mb-2 animate-pulse"
+              />
               <p className="text-sm">Loading world map...</p>
             </div>
           </div>
@@ -364,7 +372,11 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
               <h3 className="text-lg font-semibold text-white">Network Information</h3>
               {isLoading && (
                 <div className="flex items-center space-x-2 text-sm text-gray-400">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#6BE4A8]"></div>
+                  <img
+                    src="src/assets/logo.png"
+                    alt="Loading"
+                    className="w-4 h-4 animate-pulse"
+                  />
                   <span>Loading...</span>
                 </div>
               )}

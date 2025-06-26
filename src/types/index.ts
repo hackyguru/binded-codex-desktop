@@ -23,7 +23,7 @@ export interface DirectoryConfig {
 }
 
 export interface FileManifest {
-  filename: string;
+  filename: string | null;
   datasetSize: number;
   mimetype: string;
 } 

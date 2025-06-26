@@ -56,7 +56,11 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     if (isLoading) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-gray-400">
-          <FiLoader className="animate-spin text-4xl mb-4" />
+          <img
+            src="src/assets/logo.png"
+            alt="Loading"
+            className="w-16 h-16 animate-pulse mb-4"
+          />
           <p>Searching the network for manifest...</p>
         </div>
       );

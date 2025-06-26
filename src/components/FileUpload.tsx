@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiUploadCloud, FiFile, FiX, FiLoader, FiDownload, FiFolder, FiRotateCcw, FiDatabase, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiUploadCloud, FiFile, FiX, FiDownload, FiFolder, FiRotateCcw, FiDatabase, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
@@ -140,7 +140,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
     }
   };
 
-  const downloadFile = async (cid: string, fileName: string) => {
+  const getFileExtension = (filename: string | null) => {
+    if (!filename) return 'FILE';
+    return filename.split('.').pop()?.toUpperCase() || 'FILE';
+  };
+
+  const getSafeFilename = (filename: string | null) => {
+    return filename || 'unnamed';
+  };
+
+  const downloadFile = async (cid: string, fileName: string | null) => {
     try {
       setDownloadStatus(prev => ({
         ...prev,
@@ -151,7 +160,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       console.log(`Downloading file from: ${downloadUrl}`);
 
       const downloadsPath = getCurrentDownloadPath();
-      const filePath = `${downloadsPath}/${fileName}`;
+      const safeFilename = getSafeFilename(fileName);
+      const filePath = `${downloadsPath}/${safeFilename}`;
 
       console.log(`Saving file to: ${filePath}`);
 
@@ -173,8 +183,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       // Add to recent files
       addRecentFile({
         cid,
-        fileName,
-        fileType: fileName.split('.').pop()?.toUpperCase() || 'FILE',
+        fileName: safeFilename,
+        fileType: safeFilename.split('.').pop()?.toUpperCase() || 'FILE',
         fileSize: 'Unknown', // We don't have size info for downloads from recent files
         source: 'download'
       });
@@ -187,7 +197,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
     }
   };
 
-  const handleDownload = async (cid: string, filename: string) => {
+  const handleDownload = async (cid: string, filename: string | null) => {
     try {
       await downloadFile(cid, filename);
     } catch (error) {
@@ -267,13 +277,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
 
   const getStatusIcon = (status: FileItem['status']) => {
     if (status === 'uploading') {
-      return <FiLoader className="w-5 h-5 animate-spin" />;
+      return <img src="src/assets/logo.png" alt="Loading" className="w-5 h-5 animate-pulse" />;
     }
     return <FiFile className="w-6 h-6" />;
-  };
-
-  const getFileExtension = (filename: string) => {
-    return filename.split('.').pop()?.toUpperCase() || 'FILE';
   };
 
   return (

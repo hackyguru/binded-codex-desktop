@@ -4,7 +4,6 @@ import {
   FiCopy, 
   FiDownload, 
   FiMonitor,
-  FiLoader,
   FiCheck,
   FiSearch
 } from 'react-icons/fi';
@@ -46,6 +45,16 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   
   // Button should be disabled if Codex is starting, killing, or if directory is not set
   const isButtonDisabled = isActuallyStarting || isKilling || !isDirectorySet;
+
+  // Debug logging
+  console.log('Power button state:', {
+    isDirectorySet,
+    isActuallyStarting,
+    isKilling,
+    isButtonDisabled,
+    isCodexRunning,
+    isConnected
+  });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

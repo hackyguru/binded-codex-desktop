@@ -162,7 +162,7 @@ const App: React.FC = () => {
         timeSinceStart: Date.now() - appStartTime
       });
       
-      // Only auto-start on very first initialization and within first 5 seconds of app start
+      // Only auto-start on very first initialization, within first 5 seconds of app start, and when auto-start is enabled
       const isInitialLoad = !hasInitialized && (Date.now() - appStartTime) < 5000;
       
       if (isInitialLoad && isDirectorySet && dataDirectory && autoStartCodex && !manuallyKilled) {
@@ -175,24 +175,49 @@ const App: React.FC = () => {
       }
     };
 
-    // Only run if we haven't initialized yet OR if critical config changed
-    if (!hasInitialized || (isDirectorySet && dataDirectory && !codexChild)) {
+    // Only run if we haven't initialized yet - remove codexChild dependency to prevent re-runs
+    if (!hasInitialized) {
       initializeApp();
     }
-  }, [isDirectorySet, dataDirectory, autoStartCodex, hasInitialized, manuallyKilled, appStartTime, codexChild]);
+  }, [isDirectorySet, dataDirectory, autoStartCodex, hasInitialized, manuallyKilled, appStartTime]);
 
-  // Reset manual kill flag when process stops unexpectedly (not manually killed)
+  // Debug effect to track auto-start setting changes
   useEffect(() => {
-    if (hasInitialized && !codexChild && !isCodexRunning && manuallyKilled) {
-      // Process has stopped and we're not in the middle of starting it
-      // Reset the manual kill flag after a delay to allow for potential auto-restart
-      const timer = setTimeout(() => {
-        setManuallyKilled(false);
-      }, 5000); // 5 second delay
+    console.log('Auto-start setting changed:', {
+      autoStartCodex,
+      rawLocalStorageValue: localStorage.getItem('codexAutoStartEnabled'),
+      hasInitialized,
+      manuallyKilled
+    });
+  }, [autoStartCodex, hasInitialized, manuallyKilled]);
+
+  // Debug effect to track states that affect the power button
+  useEffect(() => {
+    console.log('App state affecting power button:', {
+      isDirectorySet,
+      dataDirectory: !!dataDirectory,
+      isCodexRunning,
+      codexChild: !!codexChild,
+      connectionStatus,
+      isConnected,
+      hasInitialized,
+      manuallyKilled
+    });
+  }, [isDirectorySet, dataDirectory, isCodexRunning, codexChild, connectionStatus, isConnected, hasInitialized, manuallyKilled]);
+
+  // Don't reset manual kill flag automatically - only reset when user manually starts
+  // This was causing auto-restart after manual kills
+  // useEffect(() => {
+  //   if (hasInitialized && !codexChild && !isCodexRunning && manuallyKilled) {
+  //     // Process has stopped and we're not in the middle of starting it
+  //     // Reset the manual kill flag after a delay to allow for potential auto-restart
+  //     const timer = setTimeout(() => {
+  //       setManuallyKilled(false);
+  //     }, 5000); // 5 second delay
       
-      return () => clearTimeout(timer);
-    }
-  }, [codexChild, isCodexRunning, manuallyKilled, hasInitialized]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [codexChild, isCodexRunning, manuallyKilled, hasInitialized]);
 
   return (
     <div className="flex h-screen">

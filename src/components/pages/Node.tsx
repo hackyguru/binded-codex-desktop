@@ -35,8 +35,13 @@ const Node: React.FC<NodeProps> = ({
   
   const [downloadStates, setDownloadStates] = useState<{ [key: string]: DownloadState }>({});
 
-  const getFileExtension = (filename: string) => {
+  const getFileExtension = (filename: string | null) => {
+    if (!filename) return 'FILE';
     return filename.split('.').pop()?.toUpperCase() || 'FILE';
+  };
+
+  const getSafeFilename = (filename: string | null) => {
+    return filename || 'unnamed';
   };
 
   const downloadWithProgress = async (url: string, filename: string, cid: string) => {
@@ -70,12 +75,13 @@ const Node: React.FC<NodeProps> = ({
     }
   };
 
-  const handleDownload = async (cid: string, filename: string) => {
+  const handleDownload = async (cid: string, filename: string | null) => {
     try {
       const downloadUrl = `http://localhost:${finalApiPort}/api/codex/v1/data/${cid}/network/stream`;
       console.log(`Downloading file from: ${downloadUrl}`);
       
-      await downloadWithProgress(downloadUrl, filename, cid);
+      const safeFilename = getSafeFilename(filename);
+      await downloadWithProgress(downloadUrl, safeFilename, cid);
       console.log('File downloaded successfully');
     } catch (error) {
       console.error('Download failed:', error);
@@ -99,7 +105,11 @@ const Node: React.FC<NodeProps> = ({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+        <img
+          src="src/assets/logo.png"
+          alt="Loading"
+          className="w-12 h-12 animate-pulse mb-4"
+        />
         <p>Loading node contents...</p>
       </div>
     );
@@ -168,7 +178,7 @@ const Node: React.FC<NodeProps> = ({
           {nodeFiles.map(file => (
             <FileCard
               key={file.cid}
-              fileName={file.manifest.filename}
+              fileName={getSafeFilename(file.manifest.filename)}
               fileType={getFileExtension(file.manifest.filename)}
               fileSize={formatBytes(file.manifest.datasetSize)}
               progress={100}

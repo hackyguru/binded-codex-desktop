@@ -21,6 +21,11 @@ export const useCodexConfig = () => {
     const savedAutoStartCodex = storageUtils.getAutoStartCodex();
     
     // Debug logging
+    console.log('useCodexConfig initializing:', {
+      savedDir,
+      isDirectoryCurrentlySet: !!savedDir
+    });
+    
     console.log('Loading auto-start setting:', {
       savedAutoStartCodex,
       rawValue: localStorage.getItem('codexAutoStartEnabled')
@@ -48,16 +53,21 @@ export const useCodexConfig = () => {
 
   const handleSelectDirectory = async () => {
     try {
+      console.log('Opening directory selector...');
       const selected = await open({
         multiple: false,
         directory: true,
         title: 'Select Codex Data Directory'
       });
       
+      console.log('Directory selection result:', selected);
+      
       if (selected && typeof selected === 'string') {
+        console.log('Setting directory:', selected);
         setDataDirectory(selected);
         setIsDirectorySet(true);
         storageUtils.setDataDirectory(selected);
+        console.log('Directory set successfully, isDirectorySet should now be true');
       }
     } catch (error) {
       console.error('Error selecting directory:', error);
