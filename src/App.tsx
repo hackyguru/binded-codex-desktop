@@ -56,7 +56,8 @@ const usePageRenderer = (
   connectionState: ConnectionState,
   codexState: CodexState,
   apiPort: string,
-  searchedCid: string
+  searchedCid: string,
+  handleSearch: (cid: string) => void
 ) => {
   const renderPage = () => {
     const commonProps = {
@@ -75,7 +76,7 @@ const usePageRenderer = (
       case 'Dashboard':
         return <Dashboard {...commonProps} />;
       case 'Node':
-        return <Node {...commonProps} />;
+        return <Node {...commonProps} onNavigateToSearch={handleSearch} />;
       case 'Search':
         return <Search cid={searchedCid} />;
       case 'NetworkStatus':
@@ -127,8 +128,6 @@ const App: React.FC = () => {
     output: codexOutput
   };
 
-  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid);
-
   // Event handlers
   const handleRunCodexWithConfig = () => {
     connectionState.clearImmediateState();
@@ -146,6 +145,8 @@ const App: React.FC = () => {
     setSearchedCid(cid);
     setActivePage('Search');
   };
+
+  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid, handleSearch);
 
   // Effects - Only run once on app initialization
   useEffect(() => {

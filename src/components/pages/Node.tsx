@@ -13,6 +13,7 @@ interface NodeProps {
   connectionStatus?: string;
   isConnected?: boolean;
   apiPort?: string;
+  onNavigateToSearch?: (cid: string) => void;
 }
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
@@ -20,7 +21,8 @@ type DownloadState = 'downloading' | 'completed' | 'error' | null;
 const Node: React.FC<NodeProps> = ({ 
   connectionStatus, 
   isConnected, 
-  apiPort: propApiPort 
+  apiPort: propApiPort,
+  onNavigateToSearch
 }) => {
   // Use props if provided, otherwise get from hooks
   const { apiPort: configApiPort } = useCodexConfig();
@@ -185,6 +187,7 @@ const Node: React.FC<NodeProps> = ({
               onDownload={() => handleDownload(file.cid, file.manifest.filename)}
               downloadState={downloadStates[file.cid]}
               cid={file.cid}
+              onInfo={() => onNavigateToSearch?.(file.cid)}
             />
           ))}
         </div>
