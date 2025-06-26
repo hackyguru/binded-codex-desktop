@@ -209,7 +209,7 @@ const FileCard: React.FC<FileCardProps> = ({
             </button>
           </div>
           <div className={`flex items-center justify-center w-24 rounded-r-2xl ${
-            isSeededInNode ? 'bg-[#6BE4A8]' : 'bg-[#151515]'
+            isSeededInNode ? 'bg-[#6BE4A8]' : 'bg-[#151515] border border-[#2D2D2D]'
           }`}>
             <button 
               onClick={onSeedToNode}

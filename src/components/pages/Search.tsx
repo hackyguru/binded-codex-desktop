@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiXCircle, FiAlertTriangle, FiSearch, FiDownload, FiCopy, FiCheck } from 'react-icons/fi';
 import { FaSeedling } from 'react-icons/fa';
-import { useCidInfo, useCodexConfig, useDownloadLocation, useRecentFiles } from '../../hooks';
+import { useCidInfo, useCodexConfig, useDownloadLocation, useRecentFiles, useNodeFiles, useCodexConnection } from '../../hooks';
 import FileCard from '../FileCard';
 import { formatBytes } from '../../utils/formatBytes';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -18,11 +18,17 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
   const { fileInfo, isLoading, error } = useCidInfo(cid, apiPort);
   const { getCurrentDownloadPath } = useDownloadLocation();
   const { addRecentFile } = useRecentFiles();
+  const { connectionStatus, isConnected } = useCodexConnection(apiPort);
+  const { files: nodeFiles } = useNodeFiles(apiPort, isConnected);
   
   const [leechState, setLeechState] = useState<DownloadState>(null);
   const [seedState, setSeedState] = useState<DownloadState>(null);
   const [leechProgress, setLeechProgress] = useState(0);
   const [seedProgress, setSeedProgress] = useState(0);
+  const [lastAction, setLastAction] = useState<'seed' | 'stop' | null>(null);
+  
+  // Check if the current file is already seeded in local node
+  const isFileSeededInNode = fileInfo ? nodeFiles.some(file => file.cid === fileInfo.cid) : false;
   
   // Copy functionality
   const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
@@ -148,10 +154,45 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     }
   };
 
-  const handleSeed = async () => {
+  const handleStopSeeding = async () => {
     if (!fileInfo) return;
     setSeedState('downloading');
     setSeedProgress(0);
+    setLastAction('stop');
+    
+    try {
+      // Remove the file from local node storage
+      const deleteUrl = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}`;
+      console.log('Stop seeding URL:', deleteUrl);
+      const deleteResponse = await fetch(deleteUrl, {
+        method: 'DELETE',
+      });
+      
+      if (!deleteResponse.ok) {
+        throw new Error(`Failed to stop seeding file. Status: ${deleteResponse.status}`);
+      }
+      
+      console.log('File removed from local node');
+      setSeedState('completed');
+      setSeedProgress(100);
+    } catch (e) {
+      console.error('Stop seeding failed:', e);
+      setSeedState('error');
+      setSeedProgress(0);
+    }
+  };
+
+  const handleSeed = async () => {
+    if (!fileInfo) return;
+    
+    // If file is already seeded, stop seeding instead
+    if (isFileSeededInNode) {
+      return handleStopSeeding();
+    }
+    
+    setSeedState('downloading');
+    setSeedProgress(0);
+    setLastAction('seed');
     
     try {
       // Step 1: Seed the file to local node
@@ -321,7 +362,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
                     <div className="flex items-center gap-1">
                       <FiCheck className="w-3 h-3 text-[#6BE4A8]" />
                       <p className="font-medium text-xs text-[#6BE4A8]">
-                        {seedState === 'completed' ? 'Seeded & Downloaded' : 'Downloaded'}
+                        {seedState === 'completed' ? (lastAction === 'stop' ? 'Stopped Seeding' : 'Seeded & Downloaded') : 'Downloaded'}
                       </p>
                       <span className="text-xs text-gray-400">to</span>
                       <span className="font-mono text-[#6BE4A8] text-xs truncate max-w-[120px]" title={getCurrentDownloadPath()}>
@@ -369,26 +410,35 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
                 disabled={leechState === 'downloading' || seedState === 'downloading'}
                 className={`flex items-center justify-center gap-2 font-bold py-2.5 px-6 rounded-lg transition-all duration-300 flex-1 ${
                   seedState === 'completed'
-                    ? 'bg-[#6BE4A8]/20 border border-[#6BE4A8] text-[#6BE4A8] cursor-default'
+                    ? lastAction === 'stop' 
+                      ? 'bg-red-900/20 border border-red-500 text-red-400 cursor-default'
+                      : 'bg-[#6BE4A8]/20 border border-[#6BE4A8] text-[#6BE4A8] cursor-default'
                     : seedState === 'downloading'
                     ? 'bg-[#6BE4A8]/20 border border-[#6BE4A8]/50 text-[#6BE4A8]/50 cursor-not-allowed'
+                    : isFileSeededInNode
+                    ? 'bg-red-900/20 border border-red-500 text-red-400 hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed'
                     : 'bg-black/20 border border-[#6BE4A8] text-[#6BE4A8] hover:bg-[#6BE4A8]/10 disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
               >
                 {seedState === 'completed' ? (
                   <>
                     <FiCheck className="w-4 h-4" />
-                    <span className="text-sm">SEEDED</span>
+                    <span className="text-sm">{lastAction === 'stop' ? 'STOPPED' : 'SEEDED'}</span>
                   </>
                 ) : seedState === 'downloading' ? (
                   <>
                     <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" />
-                    <span className="text-sm">SEEDING...</span>
+                    <span className="text-sm">{isFileSeededInNode ? 'STOPPING...' : 'SEEDING...'}</span>
+                  </>
+                ) : isFileSeededInNode ? (
+                  <>
+                    <FiXCircle className="w-4 h-4" />
+                    <span className="text-sm">STOP SEEDING</span>
                   </>
                 ) : (
                   <>
                     <FaSeedling className="w-4 h-4" />
-                    <span className="text-sm">SEED</span>
+                    <span className="text-sm">SEED FILE</span>
                   </>
                 )}
               </button>
