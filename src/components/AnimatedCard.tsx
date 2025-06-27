@@ -20,18 +20,18 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
 
   useEffect(() => {
     if (cardRef.current && !hasAnimated) {
-      const totalDelay = delay + (staggerIndex * 0.1);
+      const totalDelay = delay + (staggerIndex * 0.05);
       
       // Set initial state
       cardRef.current.style.opacity = '0';
-      cardRef.current.style.transform = 'translateY(20px) scale(0.95)';
+      cardRef.current.style.transform = 'translateY(8px)';
       
       // Animate in after delay
       setTimeout(() => {
         if (cardRef.current) {
-          cardRef.current.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+          cardRef.current.style.transition = 'all 0.3s ease-out';
           cardRef.current.style.opacity = '1';
-          cardRef.current.style.transform = 'translateY(0) scale(1)';
+          cardRef.current.style.transform = 'translateY(0)';
           setHasAnimated(true);
         }
       }, totalDelay * 1000);
@@ -40,14 +40,14 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
 
   const handleMouseEnter = () => {
     if (hoverEffect && cardRef.current && hasAnimated) {
-      cardRef.current.style.transform = 'translateY(-4px) scale(1.02)';
-      cardRef.current.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
+      cardRef.current.style.transform = 'translateY(-2px)';
+      cardRef.current.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.15)';
     }
   };
 
   const handleMouseLeave = () => {
     if (hoverEffect && cardRef.current && hasAnimated) {
-      cardRef.current.style.transform = 'translateY(0) scale(1)';
+      cardRef.current.style.transform = 'translateY(0)';
       cardRef.current.style.boxShadow = '';
     }
   };
@@ -55,12 +55,12 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`transition-all duration-300 ease-out ${className}`}
+      className={`transition-all duration-200 ease-out ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{
         opacity: hasAnimated ? 1 : 0,
-        transform: hasAnimated ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)'
+        transform: hasAnimated ? 'translateY(0)' : 'translateY(8px)'
       }}
     >
       {children}

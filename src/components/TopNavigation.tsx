@@ -128,7 +128,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
         <button 
           onClick={handlePowerButtonClick}
           disabled={isButtonDisabled}
-          className={`w-10 h-10 transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:transform-none disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center ${
+          className={`w-10 h-10 transition-all duration-200 transform hover:scale-[1.02] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:transform-none disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center ${
             isCodexActuallyRunning 
               ? 'bg-red-500 hover:bg-red-600 focus:ring-red-500' 
               : 'bg-[#6BE4A8] hover:bg-[#5DD49A] focus:ring-[#6BE4A8]'

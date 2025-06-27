@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiHome, FiSettings, FiMoon } from 'react-icons/fi';
+import { FiHome, FiSettings } from 'react-icons/fi';
 import { AiOutlineNodeIndex } from 'react-icons/ai';
 import { GrNodes } from 'react-icons/gr';
 
@@ -49,9 +49,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
           onClick={() => setActivePage('Settings')}
         >
           <FiSettings size={18} />
-        </button>
-        <button className="flex flex-col items-center text-gray-400 hover:text-white focus:outline-none">
-          <FiMoon size={18} />
         </button>
       </div>
     </aside>

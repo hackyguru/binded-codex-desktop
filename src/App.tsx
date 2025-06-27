@@ -74,7 +74,8 @@ const usePageRenderer = (
   codexState: CodexState,
   apiPort: string,
   searchedCid: string,
-  handleSearch: (cid: string) => void
+  handleSearch: (cid: string) => void,
+  isDirectorySet: boolean
 ) => {
   const renderPage = () => {
     const commonProps = {
@@ -83,9 +84,14 @@ const usePageRenderer = (
       apiPort
     };
 
-    // Show Install component on most pages when Codex is not running
-    // Exception: Settings page should always be accessible for configuration
-    if (connectionState.status !== "Found" && activePage !== 'Settings') {
+    // Check if onboarding is complete
+    const isOnboardingComplete = localStorage.getItem('codexOnboardingComplete') === 'true';
+
+    // Show Install component only if:
+    // 1. Codex is not running AND
+    // 2. Either onboarding is not complete OR directory is not set AND
+    // 3. Not on Settings page (Settings should always be accessible)
+    if (connectionState.status !== "Found" && activePage !== 'Settings' && (!isOnboardingComplete || !isDirectorySet)) {
       return <Install />;
     }
 
@@ -163,7 +169,7 @@ const App: React.FC = () => {
     setActivePage('Search');
   };
 
-  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid, handleSearch);
+  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid, handleSearch, isDirectorySet);
 
   // Effects - Only run once on app initialization
   useEffect(() => {

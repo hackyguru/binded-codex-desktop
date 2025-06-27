@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiDownload, FiRotateCcw, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiDownload, FiRotateCcw, FiArrowUp, FiArrowDown, FiFile } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
@@ -336,8 +336,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         </button>
       </div>
 
-      {(sessionFiles.length > 0 || recentFiles.length > 0) && (
-        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto py-4 max-h-96">
+      {(sessionFiles.length > 0 || recentFiles.length > 0) ? (
+        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto py-4">
           <motion.div 
             className="space-y-3"
             layout
@@ -408,6 +408,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
               })}
             </AnimatePresence>
           </motion.div>
+        </div>
+      ) : (
+        <div className="flex-1 bg-[#151515] rounded-xl flex flex-col items-center justify-center text-gray-500 py-12">
+          <FiFile size={64} className="mb-4" />
+          <h2 className="text-xl font-bold mb-2">No Recent Files</h2>
+          <p className="text-center max-w-md">Upload your first file using the upload area above to see it here.</p>
         </div>
       )}
     </div>

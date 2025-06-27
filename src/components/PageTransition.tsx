@@ -37,7 +37,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({
         setTimeout(() => {
           setIsTransitioning(false);
         }, 50);
-      }, 200); // Match exit animation duration
+      }, 150); // Slightly faster exit
     }
 
     return () => {
@@ -52,10 +52,10 @@ const PageTransition: React.FC<PageTransitionProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`w-full h-full transition-all duration-300 ease-out ${className} ${
+      className={`w-full h-full transition-all duration-200 ease-in-out ${className} ${
         isTransitioning 
-          ? 'opacity-0 translate-y-2 scale-[1.02]' 
-          : 'opacity-100 translate-y-0 scale-100'
+          ? 'opacity-0 translate-y-1' 
+          : 'opacity-100 translate-y-0'
       }`}
     >
       {content}

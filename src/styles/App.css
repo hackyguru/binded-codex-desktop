@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* Hexagonal clip-path for seed buttons */
+/* Hexagonal clip-path for seed buttons - same as Start Codex button */
 .clip-path-hexagon {
-  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
 /* Page Transition Animations */
