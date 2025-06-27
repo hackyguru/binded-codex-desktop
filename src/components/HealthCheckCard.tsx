@@ -45,25 +45,108 @@ const HealthCheckCard: React.FC<HealthCheckCardProps> = ({ isConnected, apiPort 
     }
   };
 
-  const checkPortForwarding = async (): Promise<boolean> => {
-    // This is a simplified check - in reality, port forwarding is complex to detect
-    // We'll check if the ports are accessible locally
+  const getPublicIP = async (): Promise<string | null> => {
     try {
-      // Try to connect to discovery port
-      const discoveryResponse = await fetch(`http://localhost:${discoveryPort}`, { 
+      const response = await fetch('https://api.ipify.org?format=json', {
+        signal: AbortSignal.timeout(5000)
+      });
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Failed to get public IP:', error);
+      return null;
+    }
+  };
+
+  const checkPortForwarding = async (): Promise<boolean> => {
+    try {
+      // First check if Codex discovery service is running locally
+      const localResponse = await fetch(`http://localhost:${discoveryPort}`, { 
         method: 'HEAD',
         signal: AbortSignal.timeout(2000)
       });
-      return true;
+      
+      // If local service is not running, port forwarding is irrelevant
+      if (!localResponse.ok) {
+        return false;
+      }
+
+      // Get public IP address
+      const publicIP = await getPublicIP();
+      if (!publicIP) {
+        console.warn('Could not determine public IP, falling back to connection status');
+        return isConnected;
+      }
+
+      // Try external port checking service
+      try {
+        const response = await fetch(`https://api.portchecker.io/check?host=${publicIP}&port=${discoveryPort}`, {
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Port check result:', result);
+          return result.open === true || result.status === 'open';
+        }
+      } catch (error) {
+        console.warn('External port checker failed:', error);
+      }
+
+      // Try alternative method using a different service
+      try {
+        // Use ipify to check if we can make external requests
+        const testResponse = await fetch(`https://api.ipify.org/`, {
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        if (testResponse.ok) {
+          // If we can reach external services, but port checker failed,
+          // the port is likely closed
+          console.log('External connectivity OK, but port appears closed');
+          return false;
+        }
+      } catch (error) {
+        console.warn('External connectivity test failed:', error);
+      }
+
+      // Fallback: Try to determine if we're behind NAT
+      try {
+        // Get local IP (this is a simplified approach)
+        const localIPResponse = await fetch('https://httpbin.org/ip', {
+          signal: AbortSignal.timeout(5000)
+        });
+        const localData = await localIPResponse.json();
+        
+        // If public IP equals the IP we see from external services,
+        // we might have a direct connection
+        if (publicIP === localData.origin) {
+          // Direct connection - port should be accessible if service is running
+          return true;
+        } else {
+          // Behind NAT - need proper port forwarding
+          // Since we can't reliably test this, we'll be conservative
+          return false;
+        }
+      } catch (error) {
+        console.warn('NAT detection failed:', error);
+      }
+
+      // Final fallback - if all external checks fail but Codex is connected,
+      // there might be some connectivity (though not necessarily port forwarding)
+      return false;
+      
     } catch (error) {
-      // Port forwarding check is not straightforward from client side
-      // For now, we'll assume it's working if Codex is connected
-      return isConnected;
+      console.error('Port forwarding check failed:', error);
+      return false;
     }
   };
 
   useEffect(() => {
     const runHealthChecks = async () => {
+      // Reset all checks to checking state
+      setHealthChecks(prev => prev.map(check => ({ ...check, status: 'checking' })));
+
       // Internet connection check
       const internetStatus = await checkInternetConnection();
       setHealthChecks(prev => prev.map(check => 
@@ -79,8 +162,10 @@ const HealthCheckCard: React.FC<HealthCheckCardProps> = ({ isConnected, apiPort 
           : check
       ));
 
-      // Port forwarding check
+      // Port forwarding check (this takes longer due to external API calls)
+      console.log('Starting port forwarding check...');
       const portStatus = await checkPortForwarding();
+      console.log('Port forwarding check result:', portStatus);
       setHealthChecks(prev => prev.map(check => 
         check.name === 'Port forwarding' 
           ? { ...check, status: portStatus ? 'success' : 'error' }
