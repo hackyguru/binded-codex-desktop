@@ -114,7 +114,7 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
                 value="local"
                 checked={nodeType === 'local'}
                 onChange={() => handleNodeTypeChange('local')}
-                className="w-4 h-4 text-[#6BE4A8] bg-black/20 border-gray-600 focus:ring-[#6BE4A8] focus:ring-2"
+                className="w-4 h-4 text-[#6BE4A8] bg-black/20 border-gray-600 focus:ring-[#6BE4A8] focus:ring-2 accent-[#6BE4A8]"
               />
               <div>
                 <span className="text-white font-medium">Local Node</span>
@@ -128,7 +128,7 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
                 value="remote"
                 checked={nodeType === 'remote'}
                 onChange={() => handleNodeTypeChange('remote')}
-                className="w-4 h-4 text-[#6BE4A8] bg-black/20 border-gray-600 focus:ring-[#6BE4A8] focus:ring-2"
+                className="w-4 h-4 text-[#6BE4A8] bg-black/20 border-gray-600 focus:ring-[#6BE4A8] focus:ring-2 accent-[#6BE4A8]"
               />
               <div>
                 <span className="text-white font-medium">Remote Node</span>
@@ -310,25 +310,25 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
             {customDownloadPath || 'Using default downloads directory'}
           </p>
           <div className="flex space-x-3">
-            <button
-              onClick={selectDownloadDirectory}
-              className="flex items-center px-4 py-2 bg-[#6BE4A8] text-black rounded-lg font-medium hover:bg-[#5ad396] transition-colors"
-            >
-              <FiFolder className="w-4 h-4 mr-2" />
-              Choose Directory
-            </button>
-            {customDownloadPath && (
               <button
-                onClick={resetToDefault}
-                className="flex items-center px-4 py-2 bg-black/20 text-white rounded-lg font-medium hover:bg-black/30 transition-colors border border-gray-600"
-                title="Reset to default downloads directory"
+                onClick={selectDownloadDirectory}
+              className="flex items-center px-4 py-2 bg-[#6BE4A8] text-black rounded-lg font-medium hover:bg-[#5ad396] transition-colors"
               >
-                <FiRotateCcw className="w-4 h-4" />
+                <FiFolder className="w-4 h-4 mr-2" />
+                Choose Directory
               </button>
-            )}
+              {customDownloadPath && (
+                <button
+                  onClick={resetToDefault}
+                className="flex items-center px-4 py-2 bg-black/20 text-white rounded-lg font-medium hover:bg-black/30 transition-colors border border-gray-600"
+                  title="Reset to default downloads directory"
+                >
+                  <FiRotateCcw className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
     </div>
   );
 
@@ -345,8 +345,8 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
             <div className="flex items-center">
               <div className={`w-3 h-3 rounded-full mr-3 ${connectionStatus === "Found" ? 'bg-[#6BE4A8]' : 'bg-red-500'}`}></div>
               <span className="text-white font-medium">
-                {connectionStatus === "Found" ? 'Connected to Codex API' : 'Not connected to Codex API'}
-              </span>
+              {connectionStatus === "Found" ? 'Connected to Codex API' : 'Not connected to Codex API'}
+            </span>
             </div>
             <span className="text-sm text-gray-400">Port: {apiPort}</span>
           </div>
@@ -405,8 +405,8 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
               </button>
             ))}
           </nav>
+          </div>
         </div>
-      </div>
 
       {/* Right Content Area */}
       <div className="flex-1 overflow-y-auto">

@@ -23,7 +23,8 @@ export const useCodexConfig = () => {
     // Debug logging
     console.log('useCodexConfig initializing:', {
       savedDir,
-      isDirectoryCurrentlySet: !!savedDir
+      isDirectoryCurrentlySet: !!savedDir,
+      onboardingComplete: localStorage.getItem('codexOnboardingComplete')
     });
     
     console.log('Loading auto-start setting:', {
@@ -32,8 +33,11 @@ export const useCodexConfig = () => {
     });
     
     if (savedDir) {
+      console.log('Setting directory and isDirectorySet to true:', savedDir);
       setDataDirectory(savedDir);
       setIsDirectorySet(true);
+    } else {
+      console.log('No saved directory found, isDirectorySet remains false');
     }
     
     if (savedDiscoveryPort) {
@@ -50,6 +54,15 @@ export const useCodexConfig = () => {
     
     setAutoStartCodex(savedAutoStartCodex);
   }, []);
+
+  // Debug effect to track isDirectorySet changes
+  useEffect(() => {
+    console.log('isDirectorySet changed:', {
+      isDirectorySet,
+      dataDirectory,
+      savedDir: storageUtils.getDataDirectory()
+    });
+  }, [isDirectorySet, dataDirectory]);
 
   const handleSelectDirectory = async () => {
     try {

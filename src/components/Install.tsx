@@ -33,8 +33,8 @@ const Install: React.FC = () => {
   if (isDirectorySet && isOnboardingComplete) {
     return (
       <div className="relative w-full h-full text-center flex items-center justify-center">
-        {/* Hexagonal background animation */}
-        <div className="absolute inset-0 overflow-hidden">
+        {/* Hexagonal background animation - extend beyond container bounds */}
+        <div className="absolute -inset-6 overflow-hidden">
           <Squares 
             speed={0.5} 
             squareSize={90}
@@ -69,8 +69,14 @@ const Install: React.FC = () => {
       setCurrentStep(currentStep + 1);
     } else if (currentStep === totalSteps) {
       // Mark onboarding as complete when finishing the last step
+      console.log('Onboarding finishing - setting complete flag:', {
+        isDirectorySet,
+        dataDirectory,
+        savedDir: localStorage.getItem('codexDataDirectory')
+      });
       localStorage.setItem('codexOnboardingComplete', 'true');
       setIsOnboardingComplete(true);
+      console.log('Onboarding completed, should now show dashboard');
     }
   };
 
@@ -324,8 +330,8 @@ const Install: React.FC = () => {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
-      {/* Hexagonal background animation */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Hexagonal background animation - extend beyond container bounds */}
+      <div className="absolute -inset-6 overflow-hidden">
         <Squares 
           speed={0.5} 
           squareSize={90}
