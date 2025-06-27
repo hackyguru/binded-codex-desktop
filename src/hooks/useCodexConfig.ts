@@ -11,49 +11,72 @@ export const useCodexConfig = () => {
   const [listeningPort, setListeningPort] = useState<string>(DEFAULT_PORTS.LISTENING);
   const [apiPort, setApiPort] = useState<string>(DEFAULT_PORTS.API);
   const [autoStartCodex, setAutoStartCodex] = useState<boolean>(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Initialize and load saved data directory and ports
   useEffect(() => {
-    const savedDir = storageUtils.getDataDirectory();
-    const savedDiscoveryPort = storageUtils.getDiscoveryPort();
-    const savedListeningPort = storageUtils.getListeningPort();
-    const savedApiPort = storageUtils.getApiPort();
-    const savedAutoStartCodex = storageUtils.getAutoStartCodex();
+    const loadConfig = () => {
+      const savedDir = storageUtils.getDataDirectory();
+      const savedDiscoveryPort = storageUtils.getDiscoveryPort();
+      const savedListeningPort = storageUtils.getListeningPort();
+      const savedApiPort = storageUtils.getApiPort();
+      const savedAutoStartCodex = storageUtils.getAutoStartCodex();
+      
+      // Debug logging
+      console.log('useCodexConfig loading config (trigger:', refreshTrigger, '):', {
+        savedDir,
+        isDirectoryCurrentlySet: !!savedDir,
+        onboardingComplete: localStorage.getItem('codexOnboardingComplete')
+      });
+      
+      console.log('Loading auto-start setting:', {
+        savedAutoStartCodex,
+        rawValue: localStorage.getItem('codexAutoStartEnabled')
+      });
+      
+      if (savedDir) {
+        console.log('Setting directory and isDirectorySet to true:', savedDir);
+        setDataDirectory(savedDir);
+        setIsDirectorySet(true);
+      } else {
+        console.log('No saved directory found, isDirectorySet remains false');
+        setDataDirectory("");
+        setIsDirectorySet(false);
+      }
+      
+      if (savedDiscoveryPort) {
+        setDiscoveryPort(savedDiscoveryPort);
+      }
+      
+      if (savedListeningPort) {
+        setListeningPort(savedListeningPort);
+      }
+      
+      if (savedApiPort) {
+        setApiPort(savedApiPort);
+      }
+      
+      setAutoStartCodex(savedAutoStartCodex);
+    };
+
+    loadConfig();
+
+    // Listen for storage events to refresh config when localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'codexDataDirectory' || e.key === 'codexOnboardingComplete') {
+        console.log('Storage changed, refreshing config:', e.key, e.newValue);
+        setTimeout(() => {
+          setRefreshTrigger(prev => prev + 1);
+        }, 100); // Small delay to ensure localStorage is fully updated
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
     
-    // Debug logging
-    console.log('useCodexConfig initializing:', {
-      savedDir,
-      isDirectoryCurrentlySet: !!savedDir,
-      onboardingComplete: localStorage.getItem('codexOnboardingComplete')
-    });
-    
-    console.log('Loading auto-start setting:', {
-      savedAutoStartCodex,
-      rawValue: localStorage.getItem('codexAutoStartEnabled')
-    });
-    
-    if (savedDir) {
-      console.log('Setting directory and isDirectorySet to true:', savedDir);
-      setDataDirectory(savedDir);
-      setIsDirectorySet(true);
-    } else {
-      console.log('No saved directory found, isDirectorySet remains false');
-    }
-    
-    if (savedDiscoveryPort) {
-      setDiscoveryPort(savedDiscoveryPort);
-    }
-    
-    if (savedListeningPort) {
-      setListeningPort(savedListeningPort);
-    }
-    
-    if (savedApiPort) {
-      setApiPort(savedApiPort);
-    }
-    
-    setAutoStartCodex(savedAutoStartCodex);
-  }, []);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [refreshTrigger]);
 
   // Debug effect to track isDirectorySet changes
   useEffect(() => {
@@ -124,6 +147,11 @@ export const useCodexConfig = () => {
     console.log('Saved to localStorage:', localStorage.getItem('codexAutoStartEnabled'));
   };
 
+  const refreshConfig = () => {
+    console.log('Manually refreshing config...');
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return {
     dataDirectory,
     isDirectorySet,
@@ -136,6 +164,7 @@ export const useCodexConfig = () => {
     handleDiscoveryPortChange,
     handleListeningPortChange,
     handleApiPortChange,
-    handleAutoStartCodexChange
+    handleAutoStartCodexChange,
+    refreshConfig
   };
 }; 

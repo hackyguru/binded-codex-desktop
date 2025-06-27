@@ -4,7 +4,11 @@ import Squares from './Squares';
 import { useCodexConfig } from '../hooks/useCodexConfig';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 
-const Install: React.FC = () => {
+interface InstallProps {
+  onConfigRefresh?: () => void;
+}
+
+const Install: React.FC<InstallProps> = ({ onConfigRefresh }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [agreedToDisclaimer, setAgreedToDisclaimer] = useState(false);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(() => {
@@ -77,6 +81,12 @@ const Install: React.FC = () => {
       localStorage.setItem('codexOnboardingComplete', 'true');
       setIsOnboardingComplete(true);
       console.log('Onboarding completed, should now show dashboard');
+      
+      // Refresh the config in the parent component
+      if (onConfigRefresh) {
+        console.log('Calling onConfigRefresh to update parent state...');
+        setTimeout(() => onConfigRefresh(), 100);
+      }
     }
   };
 

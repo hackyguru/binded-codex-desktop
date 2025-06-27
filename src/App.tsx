@@ -75,7 +75,9 @@ const usePageRenderer = (
   apiPort: string,
   searchedCid: string,
   handleSearch: (cid: string) => void,
-  isDirectorySet: boolean
+  isDirectorySet: boolean,
+  refreshConfig: () => void,
+  handleKillCodex: () => void
 ) => {
   const renderPage = () => {
     const commonProps = {
@@ -92,7 +94,7 @@ const usePageRenderer = (
     // 2. Either onboarding is not complete OR directory is not set AND
     // 3. Not on Settings page (Settings should always be accessible)
     if (connectionState.status !== "Found" && activePage !== 'Settings' && (!isOnboardingComplete || !isDirectorySet)) {
-      return <Install />;
+      return <Install onConfigRefresh={refreshConfig} />;
     }
 
     switch (activePage) {
@@ -105,7 +107,7 @@ const usePageRenderer = (
       case 'NetworkStatus':
         return <NetworkStatus {...commonProps} />;
       case 'Settings':
-        return <Settings {...commonProps} codexOutput={codexState.output} />;
+        return <Settings {...commonProps} codexOutput={codexState.output} onKillCodex={handleKillCodex} />;
       default:
         return <Dashboard {...commonProps} />;
     }
@@ -129,7 +131,8 @@ const App: React.FC = () => {
     discoveryPort,
     listeningPort,
     apiPort,
-    autoStartCodex
+    autoStartCodex,
+    refreshConfig
   } = useCodexConfig();
 
   const {
@@ -169,7 +172,7 @@ const App: React.FC = () => {
     setActivePage('Search');
   };
 
-  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid, handleSearch, isDirectorySet);
+  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid, handleSearch, isDirectorySet, refreshConfig, handleKillCodexWithImmediateState);
 
   // Effects - Only run once on app initialization
   useEffect(() => {
@@ -228,6 +231,25 @@ const App: React.FC = () => {
       manuallyKilled
     });
   }, [isDirectorySet, dataDirectory, isCodexRunning, codexChild, connectionStatus, isConnected, hasInitialized, manuallyKilled]);
+
+  // Effect to refresh config when onboarding completion status changes
+  useEffect(() => {
+    const checkOnboardingCompletion = () => {
+      const isOnboardingComplete = localStorage.getItem('codexOnboardingComplete') === 'true';
+      if (isOnboardingComplete && !isDirectorySet) {
+        console.log('Onboarding is complete but directory not set, refreshing config...');
+        refreshConfig();
+      }
+    };
+
+    // Check immediately
+    checkOnboardingCompletion();
+
+    // Also check periodically in case we miss the transition
+    const interval = setInterval(checkOnboardingCompletion, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isDirectorySet, refreshConfig]);
 
   // Don't reset manual kill flag automatically - only reset when user manually starts
   // This was causing auto-restart after manual kills

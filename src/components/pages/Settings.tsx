@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiFolder, FiRotateCcw, FiSettings, FiDownload, FiServer, FiWifi, FiMonitor, FiGlobe } from 'react-icons/fi';
+import { FiFolder, FiRotateCcw, FiSettings, FiDownload, FiServer, FiWifi, FiMonitor, FiGlobe, FiX } from 'react-icons/fi';
 import { useCodexConfig } from '../../hooks/useCodexConfig';
 import { useDownloadLocation } from '../../hooks/useDownloadLocation';
 import { useNodeConfig } from '../../hooks/useNodeConfig';
@@ -7,6 +7,7 @@ import { useNodeConfig } from '../../hooks/useNodeConfig';
 interface SettingsProps {
   connectionStatus?: string;
   codexOutput?: string;
+  onKillCodex?: () => void;
 }
 
 type SettingsCategory = 'general' | 'codex' | 'downloads' | 'system';
@@ -24,7 +25,7 @@ const categories: CategoryItem[] = [
   { id: 'system', name: 'System', icon: <FiMonitor className="w-5 h-5" /> },
 ];
 
-const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) => {
+const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKillCodex }) => {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('general');
 
   const {
@@ -349,6 +350,34 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
             </span>
             </div>
             <span className="text-sm text-gray-400">Port: {apiPort}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Process Control */}
+      <div className="bg-black/20 rounded-xl p-6">
+        <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+          Process Control
+        </h4>
+        <div className="bg-black/20 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-grow">
+              <h3 className="text-base font-medium text-white">Kill Codex Processes</h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Force stop all processes when the app becomes unresponsive
+              </p>
+            </div>
+            <div className="flex items-center ml-4">
+              <button
+                onClick={onKillCodex}
+                disabled={!onKillCodex}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+              >
+                <FiX className="w-4 h-4 mr-2" />
+                Kill Processes
+              </button>
+            </div>
           </div>
         </div>
       </div>
