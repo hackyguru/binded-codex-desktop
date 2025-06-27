@@ -114,12 +114,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
       ));
 
-      const response = await codexApi.post('/data', finalApiPort, file, {
-        headers: {
-          'Content-Type': file.type,
-          'Content-Disposition': `attachment; filename="${file.name}"`
-        }
-      });
+      const response = await codexApi.uploadFile('/data', finalApiPort, file);
 
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);

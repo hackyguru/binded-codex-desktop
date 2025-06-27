@@ -157,6 +157,82 @@ export class CodexApiClient {
   public async delete(endpoint: string, options: RequestInit = {}): Promise<Response> {
     return this.fetch(endpoint, { ...options, method: 'DELETE' });
   }
+
+  public async uploadFile(endpoint: string, file: File): Promise<Response> {
+    const url = this.buildUrl(endpoint);
+    
+    console.log(`File Upload: POST ${url}`);
+    console.log('File:', file.name, 'Size:', file.size, 'Type:', file.type);
+    console.log('Node type:', this.config.nodeType);
+
+    try {
+      if (this.config.nodeType === 'remote') {
+        // Use Tauri command for remote file uploads
+        console.log('Using Tauri upload command for remote file upload');
+        
+        // Convert file to array buffer then to Uint8Array
+        const arrayBuffer = await file.arrayBuffer();
+        const fileData = Array.from(new Uint8Array(arrayBuffer));
+        
+        const result = await invoke('upload_file', {
+          url,
+          fileData,
+          contentType: file.type || 'application/octet-stream',
+          filename: file.name,
+        }) as any;
+
+        // Create a Response-like object from the Tauri command result
+        return new Response(
+          typeof result.body === 'string' ? result.body : JSON.stringify(result.body),
+          {
+            status: result.status,
+            statusText: result.statusText,
+            headers: new Headers(result.headers),
+          }
+        );
+      } else {
+        // Use regular fetch for local file uploads
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'Content-Disposition': `attachment; filename="${file.name}"`,
+            ...this.getAuthHeaders(),
+          },
+          body: file,
+          mode: 'cors',
+        });
+
+        console.log(`File Upload Response: ${response.status} ${response.statusText}`);
+        return response;
+      }
+    } catch (error) {
+      console.error('File Upload failed:', error);
+      console.error('URL:', url);
+      
+      // Provide better error messages based on node type
+      if (this.config.nodeType === 'remote') {
+        throw new Error(
+          `Remote File Upload Error: Cannot upload file to remote Codex server at "${this.config.remoteEndpoint}". ` +
+          `Please check:\n` +
+          `1. The server URL is correct and accessible\n` +
+          `2. Your internet connection is working\n` +
+          `3. The server is running and responding\n` +
+          `4. Your authentication credentials are correct\n` +
+          `5. The server supports file uploads`
+        );
+      } else {
+        // Local node error
+        throw new Error(
+          `Local File Upload Error: Cannot upload file to local Codex node at "${url}". ` +
+          `Please ensure:\n` +
+          `1. Codex is running on port ${this.config.localApiPort}\n` +
+          `2. The API port is correct in settings\n` +
+          `3. Codex is properly started and accessible`
+        );
+      }
+    }
+  }
 }
 
 // Factory function to create API client with current configuration
@@ -190,6 +266,11 @@ export const codexApi = {
   delete: (endpoint: string, localApiPort: string, options?: RequestInit) => {
     const client = createApiClient(localApiPort);
     return client.delete(endpoint, options);
+  },
+
+  uploadFile: (endpoint: string, localApiPort: string, file: File) => {
+    const client = createApiClient(localApiPort);
+    return client.uploadFile(endpoint, file);
   },
 
   buildUrl: (endpoint: string, localApiPort: string) => {

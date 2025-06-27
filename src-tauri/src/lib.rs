@@ -91,6 +91,59 @@ async fn http_request(
     }))
 }
 
+#[tauri::command]
+async fn upload_file(
+    url: String,
+    file_data: Vec<u8>,
+    content_type: String,
+    filename: String,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::new();
+    
+    let mut request_builder = client.post(&url);
+    
+    // Add required headers for Codex file upload
+    request_builder = request_builder
+        .header("Content-Type", content_type)
+        .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+        .body(file_data);
+
+    // Make the request
+    let response = request_builder
+        .send()
+        .await
+        .map_err(|e| format!("Upload failed: {}", e))?;
+
+    let status = response.status().as_u16();
+    let status_text = response.status().canonical_reason().unwrap_or("Unknown").to_string();
+    
+    let response_headers: HashMap<String, String> = response
+        .headers()
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+        .collect();
+
+    let body_text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response body: {}", e))?;
+
+    // Try to parse as JSON, fallback to text
+    let body_json = if body_text.trim().starts_with('{') || body_text.trim().starts_with('[') {
+        serde_json::from_str(&body_text).unwrap_or(serde_json::Value::String(body_text.clone()))
+    } else {
+        serde_json::Value::String(body_text.clone())
+    };
+
+    Ok(serde_json::json!({
+        "status": status,
+        "statusText": status_text,
+        "headers": response_headers,
+        "body": body_json,
+        "ok": status >= 200 && status < 300
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -100,7 +153,7 @@ pub fn run() {
         .plugin(tauri_plugin_upload::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_http::init())
-        .invoke_handler(tauri::generate_handler![greet, execute_command, http_request])
+        .invoke_handler(tauri::generate_handler![greet, execute_command, http_request, upload_file])
         .setup(|app| {
             let win_builder =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
