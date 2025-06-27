@@ -21,42 +21,87 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
   const { connectionStatus, isConnected } = useCodexConnection(apiPort);
   const { files: nodeFiles } = useNodeFiles(apiPort, isConnected);
   
-  const [leechState, setLeechState] = useState<DownloadState>(null);
+  const [downloadState, setDownloadState] = useState<DownloadState>(null);
   const [seedState, setSeedState] = useState<DownloadState>(null);
-  const [leechProgress, setLeechProgress] = useState(0);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [seedProgress, setSeedProgress] = useState(0);
   const [lastAction, setLastAction] = useState<'seed' | 'stop' | null>(null);
   
-  // Check if the current file is already seeded in local node
-  const isFileSeededInNode = fileInfo ? nodeFiles.some(file => file.cid === fileInfo.cid) : false;
+  // Check if the current file is already seeded in local node (initial state)
+  const initialSeededState = fileInfo ? nodeFiles.some(file => file.cid === fileInfo.cid) : false;
+  
+  // Local seeding status that updates with user actions
+  const [currentSeededState, setCurrentSeededState] = useState<boolean | null>(null);
+  
+  // Use local state if available, otherwise fall back to initial state
+  const isFileSeededInNode = currentSeededState !== null ? currentSeededState : initialSeededState;
   
   // Copy functionality
   const [copiedItems, setCopiedItems] = useState<Record<string, boolean>>({});
 
   const handleCopy = async (text: string, key: string) => {
+    console.log('Copy button clicked - attempting to copy:', text);
     try {
-      await navigator.clipboard.writeText(text);
+      // Check if clipboard API is available
+      if (!navigator.clipboard) {
+        console.error('Clipboard API not available');
+        // Fallback method
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        console.log('Fallback copy method used');
+      } else {
+        await navigator.clipboard.writeText(text);
+        console.log('Successfully copied to clipboard:', text);
+      }
+      
       setCopiedItems(prev => ({ ...prev, [key]: true }));
       setTimeout(() => {
         setCopiedItems(prev => ({ ...prev, [key]: false }));
       }, 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
+      // Try fallback method
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        console.log('Fallback copy method succeeded');
+        setCopiedItems(prev => ({ ...prev, [key]: true }));
+        setTimeout(() => {
+          setCopiedItems(prev => ({ ...prev, [key]: false }));
+        }, 2000);
+      } catch (fallbackError) {
+        console.error('Fallback copy method also failed:', fallbackError);
+      }
     }
   };
 
   // Copy button component
   const CopyButton: React.FC<{ text: string; copyKey: string }> = ({ text, copyKey }) => (
     <button
-      onClick={() => handleCopy(text, copyKey)}
-      className="ml-2 w-6 h-6 clip-path-hexagon bg-black/20 hover:bg-[#6BE4A8]/20 flex items-center justify-center text-gray-400 hover:text-[#6BE4A8] transition-colors focus:outline-none"
+      onClick={(e) => {
+        console.log('CopyButton onClick triggered for key:', copyKey);
+        e.preventDefault();
+        e.stopPropagation();
+        handleCopy(text, copyKey);
+      }}
+      className="ml-2 w-6 h-6 clip-path-hexagon bg-black/20 hover:bg-[#6BE4A8]/20 flex items-center justify-center text-gray-400 hover:text-[#6BE4A8] transition-colors focus:outline-none cursor-pointer relative z-10"
       title="Copy to clipboard"
     >
       {copiedItems[copyKey] ? <FiCheck size={12} className="text-[#6BE4A8]" /> : <FiCopy size={12} />}
     </button>
   );
 
-  // Add file to recent files when found
+  // Add file to recent files when found and reset seeding state
   useEffect(() => {
     if (fileInfo && fileInfo.manifest) {
       const safeFilename = getSafeFilename(fileInfo.manifest.filename);
@@ -68,15 +113,37 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
         source: 'search'
       });
     }
-  }, [fileInfo, addRecentFile]);
+    // Reset local seeding state when file changes
+    setCurrentSeededState(null);
+  }, [fileInfo]); // Removed addRecentFile from dependencies as it should be stable
 
-  // Debug logging
-  console.log('Search component - API Port:', apiPort);
-  console.log('Search component - CID:', cid);
-  console.log('Search component - Error:', error);
-  console.log('Search component - isLoading:', isLoading);
-  console.log('Search component - fileInfo:', fileInfo);
-  console.log('Search component - fileInfo.manifest:', fileInfo?.manifest);
+  // Update seeding status when seed operations complete
+  useEffect(() => {
+    if (seedState === 'completed' && lastAction) {
+      console.log('Seed operation completed, updating status:', lastAction);
+      console.log('Before state update - currentSeededState:', currentSeededState);
+      
+      if (lastAction === 'stop') {
+        console.log('Setting currentSeededState to FALSE');
+        setCurrentSeededState(false);
+      } else if (lastAction === 'seed') {
+        console.log('Setting currentSeededState to TRUE');
+        setCurrentSeededState(true);
+      }
+      
+      // Force a small delay to ensure state has updated
+      setTimeout(() => {
+        console.log('After state update - currentSeededState should be updated');
+      }, 100);
+    }
+  }, [seedState, lastAction]);
+
+  // Debug logging moved to useEffect to prevent infinite loop
+  useEffect(() => {
+    if (cid) {
+      console.log('Search component initialized for CID:', cid);
+    }
+  }, [cid]);
 
   const getFileExtension = (filename: string | null) => {
     if (!filename) return 'FILE';
@@ -124,20 +191,20 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     }
   };
 
-  const handleLeech = async () => {
+  const handleDownload = async () => {
     if (!fileInfo) return;
-    setLeechState('downloading');
-    setLeechProgress(0);
+    setDownloadState('downloading');
+    setDownloadProgress(0);
     
     try {
       const url = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}/network/stream`;
-      console.log('Leech URL:', url);
+      console.log('Download URL:', url);
       
       const safeFilename = getSafeFilename(fileInfo.manifest.filename);
-      await downloadWithProgress(url, safeFilename, setLeechProgress);
-      console.log('File downloaded via leech');
-      setLeechState('completed');
-      setLeechProgress(100);
+      await downloadWithProgress(url, safeFilename, setDownloadProgress);
+      console.log('File downloaded');
+      setDownloadState('completed');
+      setDownloadProgress(100);
 
       // Add to recent files when downloaded
       addRecentFile({
@@ -148,9 +215,9 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
         source: 'download'
       });
     } catch (e) {
-      console.error('Leech download failed:', e);
-      setLeechState('error');
-      setLeechProgress(0);
+      console.error('Download failed:', e);
+      setDownloadState('error');
+      setDownloadProgress(0);
     }
   };
 
@@ -159,6 +226,10 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     setSeedState('downloading');
     setSeedProgress(0);
     setLastAction('stop');
+    
+    // Immediately update the seeding state to false when starting stop operation
+    console.log('Starting stop seeding - setting currentSeededState to false immediately');
+    setCurrentSeededState(false);
     
     try {
       // Remove the file from local node storage
@@ -266,7 +337,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
 
   if (fileInfo && fileInfo.manifest) {
     // Determine which progress to show based on active download
-    const currentProgress = leechState === 'downloading' ? leechProgress : 
+    const currentProgress = downloadState === 'downloading' ? downloadProgress : 
                            seedState === 'downloading' ? seedProgress : 0;
 
     const safeFilename = getSafeFilename(fileInfo.manifest.filename);
@@ -315,24 +386,6 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
               <p className="text-white font-mono text-xs break-all">{fileInfo.cid}</p>
             </div>
 
-            {/* Download Progress */}
-            {(leechState === 'downloading' || seedState === 'downloading') && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-white text-sm font-medium">
-                    {leechState === 'downloading' ? 'Leeching' : 'Seeding'} Progress
-                  </span>
-                  <span className="text-[#6BE4A8] font-bold text-sm">{Math.round(currentProgress)}%</span>
-                </div>
-                <div className="w-full bg-[#1E1E1E] rounded-full h-1.5">
-                  <div 
-                    className="bg-[#6BE4A8] h-1.5 rounded-full transition-all duration-300" 
-                    style={{ width: `${currentProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-
             {/* Warning Message */}
             <div className="mb-4 p-3 bg-amber-900/20 border border-amber-500/30 rounded-lg">
               <div className="flex items-start gap-2">
@@ -347,27 +400,69 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
               </div>
             </div>
 
+            {/* Download Progress */}
+            {(downloadState === 'downloading' || seedState === 'downloading') && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-white text-sm font-medium">
+                    {downloadState === 'downloading' ? 'Downloading' : 'Seeding'} Progress
+                  </span>
+                  <span className="text-[#6BE4A8] font-bold text-sm">{Math.round(currentProgress)}%</span>
+                </div>
+                <div className="w-full bg-[#1E1E1E] rounded-full h-1.5">
+                  <div 
+                    className="bg-[#6BE4A8] h-1.5 rounded-full transition-all duration-300" 
+                    style={{ width: `${currentProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
             {/* Success Message - Above Buttons */}
-            {(seedState === 'completed' || leechState === 'completed') && (
-              <div className="mb-3 p-2 bg-[#6BE4A8]/10 border border-[#6BE4A8]/30 rounded-lg">
+            {(seedState === 'completed' || downloadState === 'completed') && (
+              <div className={`mb-3 p-2 rounded-lg ${
+                seedState === 'completed' && lastAction === 'stop'
+                  ? 'bg-red-900/10 border border-red-500/30'
+                  : 'bg-[#6BE4A8]/10 border border-[#6BE4A8]/30'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-[#6BE4A8]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    seedState === 'completed' && lastAction === 'stop'
+                      ? 'bg-red-900/20'
+                      : 'bg-[#6BE4A8]/20'
+                  }`}>
                     {seedState === 'completed' ? (
-                      <FaSeedling className="w-3 h-3 text-[#6BE4A8]" />
+                      lastAction === 'stop' ? (
+                        <FiXCircle className="w-3 h-3 text-red-400" />
+                      ) : (
+                        <FaSeedling className="w-3 h-3 text-[#6BE4A8]" />
+                      )
                     ) : (
                       <FiDownload className="w-3 h-3 text-[#6BE4A8]" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <FiCheck className="w-3 h-3 text-[#6BE4A8]" />
-                      <p className="font-medium text-xs text-[#6BE4A8]">
-                        {seedState === 'completed' ? (lastAction === 'stop' ? 'Stopped Seeding' : 'Seeded & Downloaded') : 'Downloaded'}
-                      </p>
-                      <span className="text-xs text-gray-400">to</span>
-                      <span className="font-mono text-[#6BE4A8] text-xs truncate max-w-[120px]" title={getCurrentDownloadPath()}>
-                        {getCurrentDownloadPath().split('/').pop()}
-                      </span>
+                      <FiCheck className={`w-3 h-3 ${
+                        seedState === 'completed' && lastAction === 'stop' ? 'text-red-400' : 'text-[#6BE4A8]'
+                      }`} />
+                      {seedState === 'completed' && lastAction === 'stop' ? (
+                        <p className="font-medium text-xs text-red-400">
+                          Stopped Seeding - File removed from local node
+                        </p>
+                      ) : (
+                        <>
+                          <p className={`font-medium text-xs ${
+                            seedState === 'completed' && lastAction === 'stop' ? 'text-red-400' : 'text-[#6BE4A8]'
+                          }`}>
+                            {seedState === 'completed' ? 'Seeded & Downloaded' : 'Downloaded'}
+                          </p>
+                          <span className="text-xs text-gray-400">to</span>
+                          <span className="font-mono text-[#6BE4A8] text-xs truncate max-w-[120px]" title={getCurrentDownloadPath()}>
+                            {getCurrentDownloadPath().split('/').pop()}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -377,37 +472,37 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
             {/* Action Buttons - Compact */}
             <div className="flex items-center gap-3 mt-auto">
               <button
-                onClick={handleLeech}
-                disabled={leechState === 'downloading' || seedState === 'downloading'}
+                onClick={handleDownload}
+                disabled={downloadState === 'downloading' || seedState === 'downloading'}
                 className={`flex items-center justify-center gap-2 font-bold py-2.5 px-6 rounded-lg transition-all duration-300 flex-1 ${
-                  leechState === 'completed' 
+                  downloadState === 'completed' 
                     ? 'bg-[#6BE4A8]/20 border border-[#6BE4A8] text-[#6BE4A8] cursor-default'
-                    : leechState === 'downloading'
+                    : downloadState === 'downloading'
                     ? 'bg-[#6BE4A8]/50 text-black cursor-not-allowed'
                     : 'bg-[#6BE4A8] text-black hover:bg-[#6BE4A8]/90 disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
               >
-                {leechState === 'completed' ? (
+                {downloadState === 'completed' ? (
                   <>
                     <FiCheck className="w-4 h-4" />
                     <span className="text-sm">DOWNLOADED</span>
                   </>
-                ) : leechState === 'downloading' ? (
+                ) : downloadState === 'downloading' ? (
                   <>
                     <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" />
-                    <span className="text-sm">LEECHING...</span>
+                    <span className="text-sm">DOWNLOADING...</span>
                   </>
                 ) : (
                   <>
                     <FiDownload className="w-4 h-4" />
-                    <span className="text-sm">LEECH</span>
+                    <span className="text-sm">DOWNLOAD</span>
                   </>
                 )}
               </button>
               
               <button
                 onClick={handleSeed}
-                disabled={leechState === 'downloading' || seedState === 'downloading'}
+                disabled={downloadState === 'downloading' || seedState === 'downloading'}
                 className={`flex items-center justify-center gap-2 font-bold py-2.5 px-6 rounded-lg transition-all duration-300 flex-1 ${
                   seedState === 'completed'
                     ? lastAction === 'stop' 
@@ -499,6 +594,28 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
                   <span className="text-gray-400 text-xs">Status</span>
                   <span className="text-[#6BE4A8] text-xs font-medium">Connected</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Seeding Status Card - Compact */}
+            <div className="bg-black/20 rounded-xl p-4">
+              <h4 className="text-white font-bold mb-3 flex items-center gap-2 text-sm">
+                <FaSeedling className="w-4 h-4 text-[#6BE4A8]" />
+                Seeding Status
+              </h4>
+              <div className="space-y-2">
+                <p className={`text-xs font-medium ${isFileSeededInNode ? 'text-[#6BE4A8]' : 'text-gray-400'}`}>
+                  {isFileSeededInNode 
+                    ? 'Your file is being seeded to the Codex network'
+                    : 'Your file is not being seeded to the Codex network'
+                  }
+                </p>
+                <p className="text-gray-500 text-xs mt-3">
+                  Not sure what that means? Find{' '}
+                  <a href="#" className="text-[#6BE4A8] hover:text-[#6BE4A8]/80 underline">
+                    here
+                  </a>
+                </p>
               </div>
             </div>
           </div>
