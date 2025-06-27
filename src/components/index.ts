@@ -14,6 +14,8 @@ export { default as Search } from './pages/Search';
 export { default as Settings } from './pages/Settings';
 export { default as NetworkStatus } from './pages/NetworkStatus';
 export { default as StatsCard } from './StatsCard';
+export { default as HealthCheckCard } from './HealthCheckCard';
+export { default as StorageSpaceCard } from './StorageSpaceCard';
 export { default as CircularProgress } from './CircularProgress';
 export { default as FileCard } from './FileCard';
 export { default as LoadingSpinner, LogoSpinner } from './LoadingSpinner'; 

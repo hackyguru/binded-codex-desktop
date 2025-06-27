@@ -13,7 +13,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({ percentage, color }
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="relative w-24 h-24">
+    <div className="relative" style={{ width: radius * 2, height: radius * 2 }}>
       <svg
         height={radius * 2}
         width={radius * 2}
@@ -33,13 +33,14 @@ const CircularProgress: React.FC<CircularProgressProps> = ({ percentage, color }
           strokeWidth={stroke}
           strokeDasharray={circumference + ' ' + circumference}
           style={{ strokeDashoffset }}
+          strokeLinecap="round"
           r={normalizedRadius}
           cx={radius}
           cy={radius}
           className="transition-all duration-300 ease-in-out"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-black">
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-black">
         {percentage}%
       </span>
     </div>

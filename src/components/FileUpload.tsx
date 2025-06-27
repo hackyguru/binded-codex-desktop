@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiDownload, FiRotateCcw, FiArrowUp, FiArrowDown, FiFile } from 'react-icons/fi';
+import { FiDownload, FiRotateCcw, FiFile } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
 import { useRecentFiles } from '../hooks/useRecentFiles';
 import { useCodexConfig } from '../hooks/useCodexConfig';
-import StatsCard from './StatsCard';
+import HealthCheckCard from './HealthCheckCard';
+import StorageSpaceCard from './StorageSpaceCard';
 import FileCard from './FileCard';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
@@ -268,17 +269,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   return (
     <div className="w-full h-full flex flex-col">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <StatsCard
-          icon={<FiArrowUp className="w-5 h-5 text-black" />}
-          value="2.34 Gb"
-          label="Bytes uploaded"
-          bgColor="bg-[#6BE4A8]/70"
+        <HealthCheckCard
+          isConnected={isConnected}
+          apiPort={finalApiPort}
         />
-        <StatsCard
-          icon={<FiArrowDown className="w-5 h-5 text-black" />}
-          value="12.34 Gb"
-          label="Bytes downloaded"
-          bgColor="bg-[#6BE4A8]/70"
+        <StorageSpaceCard
+          apiPort={finalApiPort}
+          isConnected={isConnected}
         />
         <div
           onDragOver={handleDragOver}
