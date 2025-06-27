@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { codexApi } from '../utils/apiClient';
 
 interface LocalNode {
   nodeId: string;
@@ -61,7 +62,7 @@ export const useDebugInfo = (apiPort: string, isConnected: boolean) => {
     setLastFetchTime(now);
 
     try {
-      const response = await fetch(`http://localhost:${apiPort}/api/codex/v1/debug/info`);
+      const response = await codexApi.get('/debug/info', apiPort);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch debug info: ${response.statusText}`);

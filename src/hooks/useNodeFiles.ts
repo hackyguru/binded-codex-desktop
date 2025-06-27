@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { codexApi } from '../utils/apiClient';
 
 // This is the structure of a single file from the API
 export interface NodeFile {
@@ -31,7 +32,7 @@ export const useNodeFiles = (apiPort: string = '8080', isConnected: boolean) => 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:${apiPort}/api/codex/v1/data`);
+      const response = await codexApi.get('/data', apiPort);
       if (!response.ok) {
         throw new Error(`Failed to fetch files: ${response.statusText}`);
       }

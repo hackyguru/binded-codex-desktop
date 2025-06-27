@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiDownload, FiRotateCcw, FiFile } from 'react-icons/fi';
+import { FiDownload, FiRotateCcw, FiFile, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
 import { useRecentFiles } from '../hooks/useRecentFiles';
 import { useCodexConfig } from '../hooks/useCodexConfig';
+import { useCodexConnection } from '../hooks/useCodexConnection';
 import HealthCheckCard from './HealthCheckCard';
 import StorageSpaceCard from './StorageSpaceCard';
 import FileCard from './FileCard';
+import { codexApi } from '../utils/apiClient';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
@@ -32,14 +34,25 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   const [downloadStatus, setDownloadStatus] = useState<{ [key: string]: DownloadState }>({});
   const [seedToNodeStatus, setSeedToNodeStatus] = useState<{ [key: string]: DownloadState }>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [corsError, setCorsError] = useState<string | null>(null);
   const hasInitialFetch = useRef(false);
 
   const { getCurrentDownloadPath } = useDownloadLocation();
   const { recentFiles, addRecentFile } = useRecentFiles();
   const { apiPort: configApiPort } = useCodexConfig();
   const finalApiPort = apiPort || configApiPort;
+  const { connectionStatus } = useCodexConnection(finalApiPort);
 
   const { files: nodeFiles, refetch: refetchNodeFiles } = useNodeFiles(finalApiPort, isConnected);
+
+  // Check for connection errors
+  useEffect(() => {
+    if (connectionStatus === "Connection Error") {
+      setCorsError("Cannot connect to remote Codex server. Please check your server configuration, network connection, and credentials.");
+    } else {
+      setCorsError(null);
+    }
+  }, [connectionStatus]);
 
   // Fetch files only once when component mounts and is connected
   useEffect(() => {
@@ -70,12 +83,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         [cid]: 'downloading'
       }));
 
-      const seedUrl = `http://localhost:${finalApiPort}/api/codex/v1/data/${cid}/network`;
-      console.log('Seeding file to local node:', seedUrl);
+      console.log('Seeding file to local node:', cid);
       
-      const response = await fetch(seedUrl, {
-        method: 'POST',
-      });
+      const response = await codexApi.post(`/data/${cid}/network`, finalApiPort);
       
       if (!response.ok) {
         throw new Error(`Failed to seed file to local node. Status: ${response.status}`);
@@ -104,13 +114,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
       ));
 
-      const response = await fetch(`http://localhost:${finalApiPort}/api/codex/v1/data`, {
-        method: 'POST',
+      const response = await codexApi.post('/data', finalApiPort, file, {
         headers: {
           'Content-Type': file.type,
           'Content-Disposition': `attachment; filename="${file.name}"`
-        },
-        body: file
+        }
       });
 
       if (!response.ok) {
@@ -158,7 +166,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         [cid]: 'downloading'
       }));
 
-      const downloadUrl = `http://localhost:${finalApiPort}/api/codex/v1/data/${cid}/network/stream`;
+      const downloadUrl = codexApi.buildUrl(`/data/${cid}/network/stream`, finalApiPort);
       console.log(`Downloading file from: ${downloadUrl}`);
 
       const downloadsPath = getCurrentDownloadPath();
@@ -310,6 +318,30 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         </div>
       </div>
 
+      {/* CORS Error Notification */}
+      {corsError && (
+        <div className="mb-6 p-4 bg-red-900/30 border border-red-600/30 rounded-xl flex items-start space-x-3">
+          <FiAlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-red-300 font-semibold mb-1">Connection Error</h4>
+            <p className="text-red-200 text-sm">{corsError}</p>
+            <div className="mt-2 flex space-x-2">
+              <button
+                onClick={() => setCorsError(null)}
+                className="text-xs text-red-300 hover:text-red-200 underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => setCorsError(null)}
+            className="text-red-400 hover:text-red-300 flex-shrink-0"
+          >
+            <FiX className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <div className='flex items-center justify-between mb-4'>
         <h3 className="text-lg font-semibold text-white">Recent Files</h3>

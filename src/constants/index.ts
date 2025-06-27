@@ -10,7 +10,11 @@ export const LOCAL_STORAGE_KEYS = {
   LISTENING_PORT: 'codexListeningPort',
   API_PORT: 'codexApiPort',
   DOWNLOAD_LOCATION: 'codexDownloadLocation',
-  AUTO_START_CODEX: 'codexAutoStartEnabled'
+  AUTO_START_CODEX: 'codexAutoStartEnabled',
+  NODE_TYPE: 'codexNodeType',
+  REMOTE_ENDPOINT: 'codexRemoteEndpoint',
+  REMOTE_USERNAME: 'codexRemoteUsername',
+  REMOTE_PASSWORD: 'codexRemotePassword'
 } as const;
 
 export const PROCESS_CHECK_INTERVAL = 5000; // 5 seconds

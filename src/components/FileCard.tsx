@@ -176,7 +176,7 @@ const FileCard: React.FC<FileCardProps> = ({
               className={`w-9 h-9 clip-path-hexagon flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ${
                 isSeededInNode 
                   ? 'bg-[#151515] text-[#6BE4A8]' 
-                  : 'bg-[#6BE4A8] text-[#151515]'
+                  : 'bg-[#2D2D2D] text-[#151515]'
               }`}
               title={isSeededInNode ? "File is already seeded in local node" : "Seed file to local node"}
             >

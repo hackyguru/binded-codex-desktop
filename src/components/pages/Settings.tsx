@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FiFolder, FiRotateCcw, FiSettings, FiDownload, FiServer, FiWifi, FiMonitor } from 'react-icons/fi';
+import { FiFolder, FiRotateCcw, FiSettings, FiDownload, FiServer, FiWifi, FiMonitor, FiGlobe } from 'react-icons/fi';
 import { useCodexConfig } from '../../hooks/useCodexConfig';
 import { useDownloadLocation } from '../../hooks/useDownloadLocation';
+import { useNodeConfig } from '../../hooks/useNodeConfig';
 
 interface SettingsProps {
   connectionStatus?: string;
@@ -47,6 +48,15 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
     resetToDefault
   } = useDownloadLocation();
 
+  const {
+    nodeType,
+    remoteConfig,
+    handleNodeTypeChange,
+    handleRemoteConfigChange,
+    clearRemoteConfig,
+    isRemoteConfigValid
+  } = useNodeConfig();
+
   const renderGeneralSettings = () => (
     <div className="space-y-6">
       {/* Auto-start Codex Section */}
@@ -88,75 +98,201 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) =>
 
   const renderCodexSettings = () => (
     <div className="space-y-6">
-      {/* Data Directory */}
+      {/* Node Type Selection */}
       <div className="bg-black/20 rounded-xl p-6">
         <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-          Data Directory
+          <FiGlobe className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+          Node Configuration
         </h4>
         <div className="bg-black/20 rounded-lg p-4">
-          <p className="text-sm text-gray-400 mb-2">Current Directory:</p>
-          <p className="text-white font-mono text-sm break-all mb-4">
-            {dataDirectory || 'No directory selected'}
-          </p>
-          <div className="flex space-x-3">
-            <button
-              onClick={handleSelectDirectory}
-              className="px-4 py-2 bg-[#6BE4A8] text-black rounded-lg font-medium hover:bg-[#5ad396] transition-colors"
-            >
-              Select Directory
-            </button>
-            {isDirectorySet && (
-              <button
-                onClick={handleChangeDirectory}
-                className="px-4 py-2 bg-black/20 text-white rounded-lg font-medium hover:bg-black/30 transition-colors border border-gray-600"
-              >
-                Change Directory
-              </button>
-            )}
+          <p className="text-sm text-gray-400 mb-4">Choose how to connect to Codex:</p>
+          <div className="space-y-3">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="radio"
+                name="nodeType"
+                value="local"
+                checked={nodeType === 'local'}
+                onChange={() => handleNodeTypeChange('local')}
+                className="w-4 h-4 text-[#6BE4A8] bg-black/20 border-gray-600 focus:ring-[#6BE4A8] focus:ring-2"
+              />
+              <div>
+                <span className="text-white font-medium">Local Node</span>
+                <p className="text-sm text-gray-400">Use the local Codex binary running on this machine</p>
+              </div>
+            </label>
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="radio"
+                name="nodeType"
+                value="remote"
+                checked={nodeType === 'remote'}
+                onChange={() => handleNodeTypeChange('remote')}
+                className="w-4 h-4 text-[#6BE4A8] bg-black/20 border-gray-600 focus:ring-[#6BE4A8] focus:ring-2"
+              />
+              <div>
+                <span className="text-white font-medium">Remote Node</span>
+                <p className="text-sm text-gray-400">Connect to a remote Codex API endpoint</p>
+              </div>
+            </label>
           </div>
         </div>
       </div>
 
-      {/* Port Configuration */}
-      <div className="bg-black/20 rounded-xl p-6">
-        <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-          <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
-          Port Configuration
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Discovery Port</label>
-            <input
-              type="text"
-              value={discoveryPort}
-              onChange={(e) => handleDiscoveryPortChange(e.target.value)}
-              className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
-              placeholder="8090"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Listening Port</label>
-            <input
-              type="text"
-              value={listeningPort}
-              onChange={(e) => handleListeningPortChange(e.target.value)}
-              className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
-              placeholder="8070"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">API Port</label>
-            <input
-              type="text"
-              value={apiPort}
-              onChange={(e) => handleApiPortChange(e.target.value)}
-              className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
-              placeholder="8080"
-            />
+      {/* Remote Node Configuration */}
+      {nodeType === 'remote' && (
+        <div className="bg-black/20 rounded-xl p-6">
+          <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+            Remote Node Settings
+          </h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Endpoint URL
+              </label>
+              <input
+                type="url"
+                value={remoteConfig.endpoint}
+                onChange={(e) => handleRemoteConfigChange({ endpoint: e.target.value })}
+                className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                placeholder="https://api.demo.codex.storage/fileshareapp/"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Full URL to the remote Codex API endpoint
+              </p>
+              <div className="mt-2 p-2 bg-yellow-900/30 border border-yellow-600/30 rounded-lg">
+                <p className="text-xs text-yellow-300">
+                  <strong>Note:</strong> Remote servers must be configured with CORS headers to allow web browser access. 
+                  If you encounter connection issues, contact the server administrator or use a local node instead.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={remoteConfig.username}
+                  onChange={(e) => handleRemoteConfigChange({ username: e.target.value })}
+                  className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                  placeholder="codex"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={remoteConfig.password}
+                  onChange={(e) => handleRemoteConfigChange({ password: e.target.value })}
+                  className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                  placeholder="••••••••••••••••••••••••••"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                {isRemoteConfigValid() ? (
+                  <div className="flex items-center text-[#6BE4A8]">
+                    <div className="w-2 h-2 rounded-full bg-[#6BE4A8] mr-2"></div>
+                    <span className="text-sm">Configuration valid</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center text-red-400">
+                    <div className="w-2 h-2 rounded-full bg-red-400 mr-2"></div>
+                    <span className="text-sm">Please fill all fields</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={clearRemoteConfig}
+                className="px-3 py-1 text-sm bg-black/20 text-white rounded-lg font-medium hover:bg-black/30 transition-colors border border-gray-600"
+              >
+                Clear
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Local Node Configuration - only show if local node is selected */}
+      {nodeType === 'local' && (
+        <>
+          {/* Data Directory */}
+          <div className="bg-black/20 rounded-xl p-6">
+            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+              Data Directory
+            </h4>
+            <div className="bg-black/20 rounded-lg p-4">
+              <p className="text-sm text-gray-400 mb-2">Current Directory:</p>
+              <p className="text-white font-mono text-sm break-all mb-4">
+                {dataDirectory || 'No directory selected'}
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleSelectDirectory}
+                  className="px-4 py-2 bg-[#6BE4A8] text-black rounded-lg font-medium hover:bg-[#5ad396] transition-colors"
+                >
+                  Select Directory
+                </button>
+                {isDirectorySet && (
+                  <button
+                    onClick={handleChangeDirectory}
+                    className="px-4 py-2 bg-black/20 text-white rounded-lg font-medium hover:bg-black/30 transition-colors border border-gray-600"
+                  >
+                    Change Directory
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Port Configuration */}
+          <div className="bg-black/20 rounded-xl p-6">
+            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+              Port Configuration
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Discovery Port</label>
+                <input
+                  type="text"
+                  value={discoveryPort}
+                  onChange={(e) => handleDiscoveryPortChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                  placeholder="8090"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Listening Port</label>
+                <input
+                  type="text"
+                  value={listeningPort}
+                  onChange={(e) => handleListeningPortChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                  placeholder="8070"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">API Port</label>
+                <input
+                  type="text"
+                  value={apiPort}
+                  onChange={(e) => handleApiPortChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                  placeholder="8080"
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 

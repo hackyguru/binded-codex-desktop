@@ -1,10 +1,11 @@
-import { useCidInfo } from '../hooks/useCidInfo';
-import { useCodex } from '../App';
-import FileCard from '../components/FileCard';
-import { formatBytes } from '../utils/formatBytes';
+import React, { useState } from 'react';
+import { useCidInfo } from '../src/hooks/useCidInfo';
+import { useCodexConfig } from '../src/hooks/useCodexConfig';
+import FileCard from '../src/components/FileCard';
+import { formatBytes } from '../src/utils/formatBytes';
 import { FiAlertTriangle, FiLoader, FiSearch } from 'react-icons/fi';
-import { useState } from 'react';
 import { download } from '@tauri-apps/plugin-upload';
+import { codexApi } from '../src/utils/apiClient';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
@@ -13,7 +14,7 @@ interface SearchProps {
 }
 
 const Search: React.FC<SearchProps> = ({ cid }) => {
-  const { apiPort } = useCodex();
+  const { apiPort } = useCodexConfig();
   const { fileInfo, isLoading, error } = useCidInfo(cid, apiPort);
   
   const [leechState, setLeechState] = useState<DownloadState>(null);
@@ -23,11 +24,8 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     if (!fileInfo) return;
     setLeechState('downloading');
     try {
-      const url = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}/network/stream`;
-      await download(url, {
-        fileName: fileInfo.manifest.filename,
-        headers: { 'Content-Type': fileInfo.manifest.mimetype },
-      });
+      const url = codexApi.buildUrl(`/data/${fileInfo.cid}/network/stream`, apiPort);
+      await download(url, fileInfo.manifest.filename || 'download');
       setLeechState('completed');
     } catch (e) {
       console.error('Leech download failed:', e);
@@ -39,9 +37,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     if (!fileInfo) return;
     setSeedState('downloading');
     try {
-      const response = await fetch(`http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}/network`, {
-        method: 'POST',
-      });
+      const response = await codexApi.post(`/data/${fileInfo.cid}/network`, apiPort);
       if (!response.ok) {
         throw new Error('Failed to seed file to local node.');
       }

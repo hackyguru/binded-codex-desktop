@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FiWifi, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { useCodexConfig } from '../hooks/useCodexConfig';
-import { useCodexConnection } from '../hooks/useCodexConnection';
+
+import { useNodeConfig } from '../hooks/useNodeConfig';
 
 interface HealthCheckItem {
   name: string;
@@ -16,15 +17,29 @@ interface HealthCheckCardProps {
 
 const HealthCheckCard: React.FC<HealthCheckCardProps> = ({ isConnected, apiPort }) => {
   const { discoveryPort, listeningPort } = useCodexConfig();
-  const [healthChecks, setHealthChecks] = useState<HealthCheckItem[]>([
-    { name: 'Internet connection', status: 'checking', icon: <FiWifi className="w-3 h-3" /> },
-    { name: 'Codex connection', status: 'checking', icon: <FiCheck className="w-3 h-3" /> },
-    { name: 'Port forwarding', status: 'checking', icon: <FiAlertTriangle className="w-3 h-3" /> },
-  ]);
+  const { nodeType } = useNodeConfig();
+  
+  // Different health checks based on node type
+  const getInitialHealthChecks = (): HealthCheckItem[] => {
+    const baseChecks = [
+      { name: 'Internet connection', status: 'checking' as const, icon: <FiWifi className="w-3 h-3" /> },
+      { name: 'Codex connection', status: 'checking' as const, icon: <FiCheck className="w-3 h-3" /> },
+    ];
+    
+    if (nodeType === 'local') {
+      baseChecks.push({ name: 'Port forwarding', status: 'checking' as const, icon: <FiAlertTriangle className="w-3 h-3" /> });
+    } else {
+      baseChecks.push({ name: 'Remote endpoint', status: 'checking' as const, icon: <FiAlertTriangle className="w-3 h-3" /> });
+    }
+    
+    return baseChecks;
+  };
+  
+  const [healthChecks, setHealthChecks] = useState<HealthCheckItem[]>(getInitialHealthChecks());
 
   const checkInternetConnection = async (): Promise<boolean> => {
     try {
-      const response = await fetch('https://www.google.com', { 
+      await fetch('https://www.google.com', { 
         method: 'HEAD',
         mode: 'no-cors',
         cache: 'no-cache'
@@ -142,6 +157,11 @@ const HealthCheckCard: React.FC<HealthCheckCardProps> = ({ isConnected, apiPort 
     }
   };
 
+  // Update health checks when node type changes
+  useEffect(() => {
+    setHealthChecks(getInitialHealthChecks());
+  }, [nodeType]);
+
   useEffect(() => {
     const runHealthChecks = async () => {
       // Reset all checks to checking state
@@ -162,19 +182,29 @@ const HealthCheckCard: React.FC<HealthCheckCardProps> = ({ isConnected, apiPort 
           : check
       ));
 
-      // Port forwarding check (this takes longer due to external API calls)
-      console.log('Starting port forwarding check...');
-      const portStatus = await checkPortForwarding();
-      console.log('Port forwarding check result:', portStatus);
-      setHealthChecks(prev => prev.map(check => 
-        check.name === 'Port forwarding' 
-          ? { ...check, status: portStatus ? 'success' : 'error' }
-          : check
-      ));
+      // Third check depends on node type
+      if (nodeType === 'local') {
+        // Port forwarding check (this takes longer due to external API calls)
+        console.log('Starting port forwarding check...');
+        const portStatus = await checkPortForwarding();
+        console.log('Port forwarding check result:', portStatus);
+        setHealthChecks(prev => prev.map(check => 
+          check.name === 'Port forwarding' 
+            ? { ...check, status: portStatus ? 'success' : 'error' }
+            : check
+        ));
+      } else {
+        // Remote endpoint check - just verify if we can connect (already done above)
+        setHealthChecks(prev => prev.map(check => 
+          check.name === 'Remote endpoint' 
+            ? { ...check, status: isConnected ? 'success' : 'error' }
+            : check
+        ));
+      }
     };
 
     runHealthChecks();
-  }, [isConnected, discoveryPort, listeningPort, apiPort]);
+  }, [isConnected, discoveryPort, listeningPort, apiPort, nodeType]);
 
   const getStatusIcon = (status: 'checking' | 'success' | 'error') => {
     switch (status) {

@@ -5,6 +5,7 @@ import { useCidInfo, useCodexConfig, useDownloadLocation, useRecentFiles, useNod
 import { LogoSpinner } from '../';
 import { formatBytes } from '../../utils/formatBytes';
 import { download } from '@tauri-apps/plugin-upload';
+import { codexApi } from '../../utils/apiClient';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
 
@@ -196,7 +197,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     setDownloadProgress(0);
     
     try {
-      const url = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}/network/stream`;
+      const url = codexApi.buildUrl(`/data/${fileInfo.cid}/network/stream`, apiPort);
       console.log('Download URL:', url);
       
       const safeFilename = getSafeFilename(fileInfo.manifest.filename);
@@ -232,7 +233,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     
     try {
       // Remove the file from local node storage
-      const deleteUrl = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}`;
+      const deleteUrl = codexApi.buildUrl(`/data/${fileInfo.cid}`, apiPort);
       console.log('Stop seeding URL:', deleteUrl);
       const deleteResponse = await fetch(deleteUrl, {
         method: 'DELETE',
@@ -266,7 +267,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     
     try {
       // Step 1: Seed the file to local node
-      const seedUrl = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}/network`;
+      const seedUrl = codexApi.buildUrl(`/data/${fileInfo.cid}/network`, apiPort);
       console.log('Seed URL:', seedUrl);
       const seedResponse = await fetch(seedUrl, {
         method: 'POST',
@@ -277,7 +278,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
       }
       
       // Step 2: Download the file from local node to user's computer
-      const downloadUrl = `http://localhost:${apiPort}/api/codex/v1/data/${fileInfo.cid}/stream`;
+              const downloadUrl = codexApi.buildUrl(`/data/${fileInfo.cid}/stream`, apiPort);
       console.log('Download URL:', downloadUrl);
       
       const safeFilename = getSafeFilename(fileInfo.manifest.filename);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiHardDrive, FiLoader, FiX } from 'react-icons/fi';
 import CircularProgress from './CircularProgress';
+import { codexApi } from '../utils/apiClient';
 
 interface StorageData {
   totalBlocks: number;
@@ -38,7 +39,7 @@ const StorageSpaceCard: React.FC<StorageSpaceCardProps> = ({ apiPort, isConnecte
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:${apiPort}/api/codex/v1/space`);
+      const response = await codexApi.get('/space', apiPort);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -78,10 +79,7 @@ const StorageSpaceCard: React.FC<StorageSpaceCardProps> = ({ apiPort, isConnecte
     return formatBytes(storageData.quotaMaxBytes);
   };
 
-  const getReservedStorage = (): string => {
-    if (!storageData) return '0 B';
-    return formatBytes(storageData.quotaReservedBytes);
-  };
+
 
   if (loading) {
     return (

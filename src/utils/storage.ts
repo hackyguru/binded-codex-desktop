@@ -56,5 +56,44 @@ export const storageUtils = {
 
   setAutoStartCodex: (enabled: boolean): void => {
     localStorage.setItem(LOCAL_STORAGE_KEYS.AUTO_START_CODEX, enabled.toString());
+  },
+
+  getNodeType: (): 'local' | 'remote' => {
+    const value = localStorage.getItem(LOCAL_STORAGE_KEYS.NODE_TYPE);
+    return value === 'remote' ? 'remote' : 'local'; // Default to local
+  },
+
+  setNodeType: (type: 'local' | 'remote'): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.NODE_TYPE, type);
+  },
+
+  getRemoteEndpoint: (): string | null => {
+    return localStorage.getItem(LOCAL_STORAGE_KEYS.REMOTE_ENDPOINT);
+  },
+
+  setRemoteEndpoint: (endpoint: string): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.REMOTE_ENDPOINT, endpoint);
+  },
+
+  getRemoteUsername: (): string | null => {
+    return localStorage.getItem(LOCAL_STORAGE_KEYS.REMOTE_USERNAME);
+  },
+
+  setRemoteUsername: (username: string): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.REMOTE_USERNAME, username);
+  },
+
+  getRemotePassword: (): string | null => {
+    return localStorage.getItem(LOCAL_STORAGE_KEYS.REMOTE_PASSWORD);
+  },
+
+  setRemotePassword: (password: string): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.REMOTE_PASSWORD, password);
+  },
+
+  removeRemoteConfig: (): void => {
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.REMOTE_ENDPOINT);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.REMOTE_USERNAME);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.REMOTE_PASSWORD);
   }
 }; 

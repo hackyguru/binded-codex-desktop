@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { codexApi } from '../utils/apiClient';
 import { FileManifest } from '../types';
 
 interface CidInfo {
@@ -22,10 +23,9 @@ export const useCidInfo = (cid: string, apiPort: string = '8080') => {
       setError(null);
       
       try {
-        const url = `http://localhost:${apiPort}/api/codex/v1/data/${cid}/network/manifest`;
-        console.log('useCidInfo - Fetching manifest from:', url);
+        console.log('useCidInfo - Fetching manifest for CID:', cid);
         
-        const response = await fetch(url);
+        const response = await codexApi.get(`/data/${cid}/network/manifest`, apiPort);
         console.log('useCidInfo - Response status:', response.status);
         console.log('useCidInfo - Response ok:', response.ok);
         

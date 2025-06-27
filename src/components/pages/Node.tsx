@@ -9,6 +9,7 @@ import FileCard from '../FileCard';
 import { formatBytes } from '../../utils/formatBytes';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../../hooks/useDownloadLocation';
+import { codexApi } from '../../utils/apiClient';
 
 interface NodeProps {
   connectionStatus?: string;
@@ -81,7 +82,7 @@ const Node: React.FC<NodeProps> = ({
 
   const handleDownload = async (cid: string, filename: string | null) => {
     try {
-      const downloadUrl = `http://localhost:${finalApiPort}/api/codex/v1/data/${cid}/network/stream`;
+      const downloadUrl = codexApi.buildUrl(`/data/${cid}/network/stream`, finalApiPort);
       console.log(`Downloading file from: ${downloadUrl}`);
       
       const safeFilename = getSafeFilename(filename);
