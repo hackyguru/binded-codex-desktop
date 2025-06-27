@@ -31,15 +31,33 @@ interface CodexState {
 // Custom hook for connection state management
 const useConnectionState = (connectionStatus: string, isConnected: boolean): ConnectionState => {
   const [immediateConnectionState, setImmediateConnectionState] = useState<string | null>(null);
+  const [disconnectedTimestamp, setDisconnectedTimestamp] = useState<number | null>(null);
 
   const effectiveConnectionStatus = immediateConnectionState || connectionStatus;
   const effectiveIsConnected = effectiveConnectionStatus === "Found";
 
-  const clearImmediateState = () => setImmediateConnectionState(null);
+  const clearImmediateState = () => {
+    setImmediateConnectionState(null);
+    setDisconnectedTimestamp(null);
+  };
   
   const setImmediateDisconnected = () => {
+    const now = Date.now();
     setImmediateConnectionState("Not Found");
-    setTimeout(() => setImmediateConnectionState(null), 5000);
+    setDisconnectedTimestamp(now);
+    
+    // Keep the disconnected state for 15 seconds instead of 5
+    // This gives more time for the actual connection check to catch up
+    setTimeout(() => {
+      // Only clear if this is still the same disconnection event
+      setImmediateConnectionState(prev => {
+        if (disconnectedTimestamp === now) {
+          setDisconnectedTimestamp(null);
+          return null;
+        }
+        return prev;
+      });
+    }, 15000);
   };
 
   return {
