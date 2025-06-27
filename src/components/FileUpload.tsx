@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiUploadCloud, FiFile, FiX, FiDownload, FiFolder, FiRotateCcw, FiDatabase, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiDownload, FiRotateCcw, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
@@ -26,10 +27,10 @@ interface FileUploadProps {
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }) => {
-  const [isDragging, setIsDragging] = useState(false);
   const [sessionFiles, setSessionFiles] = useState<FileItem[]>([]);
   const [downloadStatus, setDownloadStatus] = useState<{ [key: string]: DownloadState }>({});
   const [seedToNodeStatus, setSeedToNodeStatus] = useState<{ [key: string]: DownloadState }>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const hasInitialFetch = useRef(false);
 
   const { getCurrentDownloadPath } = useDownloadLocation();
@@ -37,7 +38,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   const { apiPort: configApiPort } = useCodexConfig();
   const finalApiPort = apiPort || configApiPort;
 
-  const { files: nodeFiles, isLoading: isLoadingNodeFiles, error: nodeFilesError, refetch: refetchNodeFiles } = useNodeFiles(finalApiPort, isConnected);
+  const { files: nodeFiles, refetch: refetchNodeFiles } = useNodeFiles(finalApiPort, isConnected);
 
   // Fetch files only once when component mounts and is connected
   useEffect(() => {
@@ -211,17 +212,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(false);
   };
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsDragging(false);
 
     const droppedFiles = Array.from(e.dataTransfer.files).map(file => ({
       id: Math.random().toString(36).substring(7),
@@ -258,28 +256,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
     }
   };
 
-  const removeFile = (id: string) => {
-    setSessionFiles(prev => prev.filter(file => file.id !== id));
-  };
-
-  const getStatusColor = (status: FileItem['status']) => {
-    switch (status) {
-      case 'uploading':
-        return 'text-blue-500';
-      case 'success':
-        return 'text-green-500';
-      case 'error':
-        return 'text-red-500';
-      default:
-        return 'text-gray-400';
-    }
-  };
-
-  const getStatusIcon = (status: FileItem['status']) => {
-    if (status === 'uploading') {
-      return <img src="src/assets/logo.png" alt="Loading" className="w-5 h-5 animate-pulse" />;
-    }
-    return <FiFile className="w-6 h-6" />;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetchNodeFiles();
+    // Keep animation for a minimum duration for visual feedback
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1000);
   };
 
   return (
@@ -334,49 +317,97 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       <div className='flex items-center justify-between mb-4'>
         <h3 className="text-lg font-semibold text-white">Recent Files</h3>
         <button
-          onClick={refetchNodeFiles}
-          className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           aria-label="Refresh files on node"
           title="Refresh files on node"
         >
-          <FiRotateCcw className="w-4 h-4 mr-1" />
+          <motion.div
+            animate={{ rotate: isRefreshing ? 360 : 0 }}
+            transition={{ 
+              duration: 1, 
+              ease: "linear",
+              repeat: isRefreshing ? Infinity : 0 
+            }}
+          >
+            <FiRotateCcw className="w-4 h-4 mr-1" />
+          </motion.div>
         </button>
       </div>
 
       {(sessionFiles.length > 0 || recentFiles.length > 0) && (
-        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto space-y-3 py-4 max-h-96">
-          {sessionFiles
-            .filter(file => file.status !== 'success')
-            .map(file => (
-              <FileCard
-                key={file.id}
-                fileName={file.name}
-                fileType={getFileExtension(file.name)}
-                fileSize={formatFileSize(file.size)}
-                progress={file.status === 'uploading' ? 50 : 0}
-              />
-            ))}
-          {recentFiles.map(file => {
-            const progress = 100; // Recent files are always at 100% progress
-            const isSeeded = isFileSeededInNode(file.cid);
-            
-            return (
-              <FileCard
-                key={file.id}
-                fileName={file.fileName}
-                fileType={file.fileType}
-                fileSize={file.fileSize}
-                progress={progress}
-                onDownload={() => handleDownload(file.cid, file.fileName)}
-                downloadState={downloadStatus[file.cid]}
-                onSeedToNode={() => handleSeedToNode(file.cid)}
-                seedToNodeState={seedToNodeStatus[file.cid]}
-                isSeededInNode={isSeeded}
-                showSeedButton={true}
-                cid={file.cid}
-              />
-            );
-          })}
+        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto py-4 max-h-96">
+          <motion.div 
+            className="space-y-3"
+            layout
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.1
+                }
+              }
+            }}
+          >
+            <AnimatePresence mode="popLayout">
+              {sessionFiles
+                .filter(file => file.status !== 'success')
+                .map(file => (
+                  <motion.div
+                    key={file.id}
+                    layout
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
+                    <FileCard
+                      fileName={file.name}
+                      fileType={getFileExtension(file.name)}
+                      fileSize={formatFileSize(file.size)}
+                      progress={file.status === 'uploading' ? 50 : 0}
+                    />
+                  </motion.div>
+                ))}
+              {recentFiles.map(file => {
+                const progress = 100; // Recent files are always at 100% progress
+                const isSeeded = isFileSeededInNode(file.cid);
+                
+                return (
+                  <motion.div
+                    key={file.id}
+                    layout
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
+                    <FileCard
+                      fileName={file.fileName}
+                      fileType={file.fileType}
+                      fileSize={file.fileSize}
+                      progress={progress}
+                      onDownload={() => handleDownload(file.cid, file.fileName)}
+                      downloadState={downloadStatus[file.cid]}
+                      onSeedToNode={() => handleSeedToNode(file.cid)}
+                      seedToNodeState={seedToNodeStatus[file.cid]}
+                      isSeededInNode={isSeeded}
+                      showSeedButton={true}
+                      cid={file.cid}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
         </div>
       )}
     </div>

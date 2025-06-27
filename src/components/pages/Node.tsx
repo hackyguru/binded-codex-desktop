@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FiRotateCcw, FiDownload, FiDatabase } from 'react-icons/fi';
 import { AiOutlineNodeIndex } from 'react-icons/ai';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNodeFiles } from '../../hooks/useNodeFiles';
 import { useCodexConfig } from '../../hooks/useCodexConfig';
 import { useCodexConnection } from '../../hooks/useCodexConnection';
@@ -36,6 +37,7 @@ const Node: React.FC<NodeProps> = ({
   const { getCurrentDownloadPath } = useDownloadLocation();
   
   const [downloadStates, setDownloadStates] = useState<{ [key: string]: DownloadState }>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const getFileExtension = (filename: string | null) => {
     if (!filename) return 'FILE';
@@ -92,6 +94,15 @@ const Node: React.FC<NodeProps> = ({
 
   const calculateTotalSize = () => {
     return nodeFiles.reduce((total, file) => total + file.manifest.datasetSize, 0);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetchNodeFiles();
+    // Keep animation for a minimum duration for visual feedback
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1000);
   };
 
   if (!finalIsConnected) {
@@ -166,30 +177,68 @@ const Node: React.FC<NodeProps> = ({
       <div className='flex items-center justify-between mb-4'>
         <h3 className="text-lg font-semibold text-white">Node Contents</h3>
         <button
-          onClick={refetchNodeFiles}
-          className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="ml-2 px-2 py-1 text-xs text-gray-200 rounded flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           aria-label="Refresh node contents"
           title="Refresh node contents"
         >
-          <FiRotateCcw className="w-4 h-4 mr-1" />
+          <motion.div
+            animate={{ rotate: isRefreshing ? 360 : 0 }}
+            transition={{ 
+              duration: 1, 
+              ease: "linear",
+              repeat: isRefreshing ? Infinity : 0 
+            }}
+          >
+            <FiRotateCcw className="w-4 h-4 mr-1" />
+          </motion.div>
         </button>
       </div>
 
       {nodeFiles.length > 0 ? (
-        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto space-y-3 py-4">
-          {nodeFiles.map(file => (
-            <FileCard
-              key={file.cid}
-              fileName={getSafeFilename(file.manifest.filename)}
-              fileType={getFileExtension(file.manifest.filename)}
-              fileSize={formatBytes(file.manifest.datasetSize)}
-              progress={100}
-              onDownload={() => handleDownload(file.cid, file.manifest.filename)}
-              downloadState={downloadStates[file.cid]}
-              cid={file.cid}
-              onInfo={() => onNavigateToSearch?.(file.cid)}
-            />
-          ))}
+        <div className="flex-1 bg-[#151515] rounded-xl px-4 overflow-y-auto py-4">
+          <motion.div 
+            className="space-y-3"
+            layout
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.1
+                }
+              }
+            }}
+          >
+            <AnimatePresence mode="popLayout">
+              {nodeFiles.map(file => (
+                <motion.div
+                  key={file.cid}
+                  layout
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  <FileCard
+                    fileName={getSafeFilename(file.manifest.filename)}
+                    fileType={getFileExtension(file.manifest.filename)}
+                    fileSize={formatBytes(file.manifest.datasetSize)}
+                    progress={100}
+                    onDownload={() => handleDownload(file.cid, file.manifest.filename)}
+                    downloadState={downloadStates[file.cid]}
+                    cid={file.cid}
+                    onInfo={() => onNavigateToSearch?.(file.cid)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-500">

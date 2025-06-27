@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiCheck, FiChevronRight, FiChevronLeft, FiFolder, FiDownload, FiServer, FiSettings } from 'react-icons/fi';
+import { FiCheck, FiChevronRight, FiChevronLeft, FiFolder, FiDownload, FiServer } from 'react-icons/fi';
 import Squares from './Squares';
 import { useCodexConfig } from '../hooks/useCodexConfig';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';

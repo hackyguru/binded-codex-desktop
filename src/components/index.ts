@@ -15,4 +15,5 @@ export { default as Settings } from './pages/Settings';
 export { default as NetworkStatus } from './pages/NetworkStatus';
 export { default as StatsCard } from './StatsCard';
 export { default as CircularProgress } from './CircularProgress';
-export { default as FileCard } from './FileCard'; 
+export { default as FileCard } from './FileCard';
+export { default as LoadingSpinner, LogoSpinner } from './LoadingSpinner'; 

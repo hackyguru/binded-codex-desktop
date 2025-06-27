@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FiXCircle, FiAlertTriangle, FiSearch, FiDownload, FiCopy, FiCheck } from 'react-icons/fi';
 import { FaSeedling } from 'react-icons/fa';
 import { useCidInfo, useCodexConfig, useDownloadLocation, useRecentFiles, useNodeFiles, useCodexConnection } from '../../hooks';
-import FileCard from '../FileCard';
+import { LogoSpinner } from '../';
 import { formatBytes } from '../../utils/formatBytes';
-import { save } from '@tauri-apps/plugin-dialog';
 import { download } from '@tauri-apps/plugin-upload';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
@@ -18,7 +17,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
   const { fileInfo, isLoading, error } = useCidInfo(cid, apiPort);
   const { getCurrentDownloadPath } = useDownloadLocation();
   const { addRecentFile } = useRecentFiles();
-  const { connectionStatus, isConnected } = useCodexConnection(apiPort);
+  const { isConnected } = useCodexConnection(apiPort);
   const { files: nodeFiles } = useNodeFiles(apiPort, isConnected);
   
   const [downloadState, setDownloadState] = useState<DownloadState>(null);
@@ -315,11 +314,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
   if (isLoading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center text-center text-white">
-        <img
-          src="src/assets/logo.png"
-          alt="Loading"
-          className="w-12 h-12 animate-pulse mb-4"
-        />
+        <LogoSpinner />
         <p className="text-lg">Searching the network for manifest...</p>
       </div>
     );
@@ -489,7 +484,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
                   </>
                 ) : downloadState === 'downloading' ? (
                   <>
-                    <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" />
+                    <LogoSpinner />
                     <span className="text-sm">DOWNLOADING...</span>
                   </>
                 ) : (
@@ -522,7 +517,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
                   </>
                 ) : seedState === 'downloading' ? (
                   <>
-                    <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" />
+                    <LogoSpinner />
                     <span className="text-sm">{isFileSeededInNode ? 'STOPPING...' : 'SEEDING...'}</span>
                   </>
                 ) : isFileSeededInNode ? (

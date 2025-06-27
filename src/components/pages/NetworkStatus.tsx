@@ -1,21 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { GrNodes } from 'react-icons/gr';
-import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiEye, FiEyeOff, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiWifi, FiUsers, FiServer, FiRotateCcw, FiInfo, FiGitBranch, FiMapPin, FiCopy, FiCheck } from 'react-icons/fi';
 import { useDebugInfo } from '../../hooks/useDebugInfo';
 import { useGeoLocation } from '../../hooks/useGeoLocation';
+
 // @ts-ignore
 import DottedMap from 'dotted-map';
 
 interface NetworkStatusProps {
-  connectionStatus?: string;
-  isConnected?: boolean;
-  apiPort?: string;
+  isConnected: boolean;
+  apiPort: string;
 }
 
 const NetworkStatus: React.FC<NetworkStatusProps> = ({ 
-  connectionStatus, 
-  isConnected = false, 
-  apiPort = '8080' 
+  isConnected, 
+  apiPort 
 }) => {
   const { debugInfo, isLoading, error, refetch } = useDebugInfo(apiPort, isConnected);
   
@@ -50,16 +49,6 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
   );
 
   // Remove scroll detection - it was causing issues with mouse movement
-
-  // Add a way to force refresh geo data
-  const handleRefreshWithGeo = () => {
-    // Clear localStorage cache if it exists
-    localStorage.removeItem('geoLocationCache');
-    // Trigger refetch of both debug info and geo data
-    refetch();
-    // Force page refresh to clear in-memory cache
-    window.location.reload();
-  };
 
   const formatNodeId = (nodeId: string) => {
     if (!nodeId) return 'N/A';

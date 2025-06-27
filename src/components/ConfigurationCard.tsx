@@ -42,7 +42,7 @@ const ConfigurationCard: React.FC<ConfigurationCardProps> = ({
   showControlButtons = true
 }) => {
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl bg-black">
+    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 shadow-2xl">
       <h2 className="text-2xl font-semibold text-white mb-6 flex items-center">
         <div className="w-2 h-2 bg-blue-500 rounded-full mr-3 animate-pulse"></div>
         Configuration

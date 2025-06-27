@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  FiCopy, 
-  FiDownload, 
+import {
+  FiDownload,
+  FiCopy,
   FiMoreHorizontal,
   FiCheck,
   FiPlayCircle,
-  FiSave,
-  FiDatabase
+  FiSave
 } from 'react-icons/fi';
 import { FaSeedling } from 'react-icons/fa';
 
@@ -63,46 +62,6 @@ const FileCard: React.FC<FileCardProps> = ({
     setTimeout(() => setIsCopied(false), 2000);
   };
   
-  const renderOriginalButtons = () => (
-    <>
-      <button 
-        onClick={onDownload}
-        disabled={!onDownload || downloadState === 'downloading'}
-        className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {downloadState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-4 h-4 animate-pulse" /> : (downloadState === 'completed' ? <FiCheck size={16} /> : <FiDownload size={16} />)}
-      </button>
-      <button 
-        onClick={handleCopyClick}
-        disabled={!cid}
-        className="w-9 h-9 bg-[#3D3D3D] clip-path-hexagon flex items-center justify-center text-white disabled:opacity-50"
-      >
-        {isCopied ? <FiCheck size={16} className="text-green-500" /> : <FiCopy size={16} />}
-      </button>
-    </>
-  );
-
-  const renderSearchButtons = () => (
-    <>
-      <button
-        onClick={onLeech}
-        disabled={leechState === 'downloading' || seedState === 'downloading'}
-        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 clip-path-hexagon text-sm disabled:opacity-50"
-      >
-        {leechState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-5 h-5 animate-pulse" /> : <FiPlayCircle />}
-        <span>LEECH</span>
-      </button>
-      <button
-        onClick={onSeed}
-        disabled={leechState === 'downloading' || seedState === 'downloading'}
-        className="flex items-center gap-2 bg-[#3D3D3D] text-white font-bold py-2 px-4 clip-path-hexagon text-sm disabled:opacity-50"
-      >
-        {seedState === 'downloading' ? <img src="src/assets/logo.png" alt="Loading" className="w-5 h-5 animate-pulse" /> : <FiSave />}
-        <span>SEED</span>
-      </button>
-    </>
-  );
-
   const renderSeedButton = () => {
     if (isSeededInNode) {
       return (

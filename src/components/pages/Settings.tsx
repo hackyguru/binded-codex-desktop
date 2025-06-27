@@ -4,9 +4,8 @@ import { useCodexConfig } from '../../hooks/useCodexConfig';
 import { useDownloadLocation } from '../../hooks/useDownloadLocation';
 
 interface SettingsProps {
-  connectionStatus: string;
-  isConnected: boolean;
-  codexOutput: string;
+  connectionStatus?: string;
+  codexOutput?: string;
 }
 
 type SettingsCategory = 'general' | 'codex' | 'downloads' | 'system';
@@ -24,7 +23,7 @@ const categories: CategoryItem[] = [
   { id: 'system', name: 'System', icon: <FiMonitor className="w-5 h-5" /> },
 ];
 
-const Settings: React.FC<SettingsProps> = ({ connectionStatus, isConnected, codexOutput }) => {
+const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput }) => {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('general');
 
   const {

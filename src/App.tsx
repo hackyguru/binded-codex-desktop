@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  StatusLog,
-  FileUpload,
   Install,
   Sidebar,
   Node,
@@ -11,6 +9,7 @@ import {
   TopNavigation,
   Dashboard
 } from "./components";
+import PageTransition from "./components/PageTransition";
 import { useCodexProcess, useCodexConfig, useCodexConnection } from "./hooks";
 import "./styles/App.css";
 
@@ -29,7 +28,7 @@ interface CodexState {
 }
 
 // Custom hook for connection state management
-const useConnectionState = (connectionStatus: string, isConnected: boolean): ConnectionState => {
+const useConnectionState = (connectionStatus: string): ConnectionState => {
   const [immediateConnectionState, setImmediateConnectionState] = useState<string | null>(null);
   const [disconnectedTimestamp, setDisconnectedTimestamp] = useState<number | null>(null);
 
@@ -139,7 +138,7 @@ const App: React.FC = () => {
   const { connectionStatus, isConnected } = useCodexConnection(apiPort);
 
   // Custom hooks
-  const connectionState = useConnectionState(connectionStatus, isConnected);
+  const connectionState = useConnectionState(connectionStatus);
   const codexState: CodexState = {
     isRunning: isCodexRunning,
     isStarted: codexChild !== null,
@@ -259,7 +258,9 @@ const App: React.FC = () => {
         <div className={`flex-1 bg-[#151515] rounded-xl mt-4 overflow-hidden mb-6 ${
           connectionStatus !== "Found" && activePage !== 'Settings' ? '' : 'p-4'
         }`}>
-          {renderPage()}
+          <PageTransition pageKey={activePage}>
+            {renderPage()}
+          </PageTransition>
         </div>
       </main>
     </div>

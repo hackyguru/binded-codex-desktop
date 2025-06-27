@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { IoIosPower } from 'react-icons/io';
 import { 
-  FiCopy, 
   FiDownload, 
-  FiMonitor,
-  FiCheck,
   FiSearch
 } from 'react-icons/fi';
 

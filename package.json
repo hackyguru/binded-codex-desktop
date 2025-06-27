@@ -19,6 +19,8 @@
     "@tauri-apps/plugin-store": "^2.2.1",
     "@tauri-apps/plugin-upload": "^2.2.2",
     "dotted-map": "^2.2.3",
+    "framer-motion": "^12.19.2",
+    "motion": "^12.19.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
