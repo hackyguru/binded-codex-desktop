@@ -22,16 +22,27 @@ const Install: React.FC<InstallProps> = ({ onConfigRefresh }) => {
     discoveryPort,
     listeningPort,
     apiPort,
+    storageQuota,
     handleSelectDirectory,
     handleDiscoveryPortChange,
     handleListeningPortChange,
-    handleApiPortChange
+    handleApiPortChange,
+    handleStorageQuotaChange
   } = useCodexConfig();
 
   const {
     customDownloadPath,
     selectDownloadDirectory
   } = useDownloadLocation();
+
+  // Utility function to format bytes to human readable format
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   // If user already has data directory set AND has completed onboarding, show the simple "not running" message
   if (isDirectorySet && isOnboardingComplete) {
@@ -246,9 +257,9 @@ const Install: React.FC<InstallProps> = ({ onConfigRefresh }) => {
               <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FiServer className="w-8 h-8 text-orange-500" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Port Configuration</h2>
+              <h2 className="text-2xl font-bold text-white mb-3">Network & Storage Configuration</h2>
               <p className="text-gray-300 mb-4">
-                Configure the network ports Codex will use. The default values should work for most users.
+                Configure the network ports and storage quota for your Codex node. The default values should work for most users.
               </p>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -282,6 +293,41 @@ const Install: React.FC<InstallProps> = ({ onConfigRefresh }) => {
                     className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
                     placeholder="8080"
                   />
+                </div>
+                <div className="bg-black/40 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Storage Quota (bytes)
+                  </label>
+                  <input
+                    type="text"
+                    value={storageQuota}
+                    onChange={(e) => handleStorageQuotaChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                    placeholder="11811160064"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Maximum storage space: {formatBytes(parseInt(storageQuota) || 0)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleStorageQuotaChange((5 * 1024 * 1024 * 1024).toString())}
+                      className="px-2 py-1 text-xs bg-black/20 text-white rounded hover:bg-black/30 transition-colors border border-gray-600"
+                    >
+                      5 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((10 * 1024 * 1024 * 1024).toString())}
+                      className="px-2 py-1 text-xs bg-black/20 text-white rounded hover:bg-black/30 transition-colors border border-gray-600"
+                    >
+                      10 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((50 * 1024 * 1024 * 1024).toString())}
+                      className="px-2 py-1 text-xs bg-black/20 text-white rounded hover:bg-black/30 transition-colors border border-gray-600"
+                    >
+                      50 GB
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">

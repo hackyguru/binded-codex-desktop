@@ -132,6 +132,7 @@ const App: React.FC = () => {
     listeningPort,
     apiPort,
     autoStartCodex,
+    storageQuota,
     refreshConfig
   } = useCodexConfig();
 
@@ -158,7 +159,7 @@ const App: React.FC = () => {
   const handleRunCodexWithConfig = () => {
     connectionState.clearImmediateState();
     setManuallyKilled(false); // Reset manual kill flag when manually starting
-    handleRunCodex(dataDirectory, discoveryPort, listeningPort, apiPort);
+    handleRunCodex(dataDirectory, discoveryPort, listeningPort, apiPort, storageQuota);
   };
 
   const handleKillCodexWithImmediateState = () => {

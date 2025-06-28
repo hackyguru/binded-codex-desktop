@@ -40,6 +40,9 @@
             },
             {
               "validator": "^--bootstrap-node=\\S+$"
+            },
+            {
+              "validator": "^--storage-quota=\\d+$"
             }
           ]
         }

@@ -53,7 +53,8 @@ export const codexService = {
     dataDirectory: string,
     discoveryPort: string,
     listeningPort: string,
-    apiPort: string
+    apiPort: string,
+    storageQuota?: string
   ): Promise<any> => {
     const args = [
       `--data-dir=${dataDirectory}`,
@@ -64,6 +65,15 @@ export const codexService = {
       `--api-port=${apiPort}`,
       `--bootstrap-node=${BOOTSTRAP_NODE}`
     ];
+
+    // Add storage quota if provided
+    if (storageQuota) {
+      args.push(`--storage-quota=${storageQuota}`);
+    }
+
+    // Debug logging to show what arguments are being passed
+    console.log('Starting Codex with arguments:', args);
+    console.log('Storage quota parameter:', storageQuota);
 
     const command = Command.sidecar(COdex_COMMAND, args);
     

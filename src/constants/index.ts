@@ -4,6 +4,8 @@ export const DEFAULT_PORTS = {
   API: "8080"
 } as const;
 
+export const DEFAULT_STORAGE_QUOTA = 11811160064; // ~11GB in bytes (same as the example)
+
 export const LOCAL_STORAGE_KEYS = {
   DATA_DIRECTORY: 'codexDataDirectory',
   DISCOVERY_PORT: 'codexDiscoveryPort',
@@ -14,7 +16,8 @@ export const LOCAL_STORAGE_KEYS = {
   NODE_TYPE: 'codexNodeType',
   REMOTE_ENDPOINT: 'codexRemoteEndpoint',
   REMOTE_USERNAME: 'codexRemoteUsername',
-  REMOTE_PASSWORD: 'codexRemotePassword'
+  REMOTE_PASSWORD: 'codexRemotePassword',
+  STORAGE_QUOTA: 'codexStorageQuota'
 } as const;
 
 export const PROCESS_CHECK_INTERVAL = 5000; // 5 seconds

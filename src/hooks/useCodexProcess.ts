@@ -23,7 +23,8 @@ export const useCodexProcess = () => {
     dataDirectory: string,
     discoveryPort: string,
     listeningPort: string,
-    apiPort: string
+    apiPort: string,
+    storageQuota?: string
   ) => {
     if (!dataDirectory) {
       setCodexOutput("Please select a data directory first.");
@@ -42,7 +43,8 @@ export const useCodexProcess = () => {
         dataDirectory,
         discoveryPort,
         listeningPort,
-        apiPort
+        apiPort,
+        storageQuota
       );
       
       // Only update state if component is still mounted

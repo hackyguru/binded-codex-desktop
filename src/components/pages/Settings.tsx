@@ -35,12 +35,14 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
     listeningPort,
     apiPort,
     autoStartCodex,
+    storageQuota,
     handleSelectDirectory,
     handleChangeDirectory,
     handleDiscoveryPortChange,
     handleListeningPortChange,
     handleApiPortChange,
-    handleAutoStartCodexChange
+    handleAutoStartCodexChange,
+    handleStorageQuotaChange
   } = useCodexConfig();
 
   const {
@@ -57,6 +59,52 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
     clearRemoteConfig,
     isRemoteConfigValid
   } = useNodeConfig();
+
+  // Utility function to format bytes to human readable format
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Utility function to parse human readable format to bytes
+  const parseStorageInput = (input: string): number => {
+    const match = input.match(/^(\d+(?:\.\d+)?)\s*(GB|MB|KB|Bytes?)?$/i);
+    if (!match) return 0;
+    
+    const value = parseFloat(match[1]);
+    const unit = (match[2] || 'bytes').toLowerCase();
+    
+    switch (unit) {
+      case 'tb': return value * 1024 * 1024 * 1024 * 1024;
+      case 'gb': return value * 1024 * 1024 * 1024;
+      case 'mb': return value * 1024 * 1024;
+      case 'kb': return value * 1024;
+      default: return value;
+    }
+  };
+
+  // Helper function to check if a preset value is currently selected
+  const isPresetSelected = (presetBytes: number): boolean => {
+    return parseInt(storageQuota) === presetBytes;
+  };
+
+  // Helper function to check if current value is a custom value (not matching any preset)
+  const isCustomValue = (): boolean => {
+    const presets = [
+      1 * 1024 * 1024 * 1024,
+      5 * 1024 * 1024 * 1024,
+      10 * 1024 * 1024 * 1024,
+      25 * 1024 * 1024 * 1024,
+      50 * 1024 * 1024 * 1024,
+      100 * 1024 * 1024 * 1024,
+      250 * 1024 * 1024 * 1024,
+      500 * 1024 * 1024 * 1024
+    ];
+    return !presets.some(preset => isPresetSelected(preset));
+  };
 
   const renderGeneralSettings = () => (
     <div className="space-y-6">
@@ -289,6 +337,140 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
                   className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
                   placeholder="8080"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Storage Configuration */}
+          <div className="bg-black/20 rounded-xl p-6">
+            <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <FiServer className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+              Storage Configuration
+            </h4>
+            <div className="bg-black/20 rounded-lg p-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Storage Quota (bytes)
+                </label>
+                <input
+                  type="text"
+                  value={storageQuota}
+                  onChange={(e) => handleStorageQuotaChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/20 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-transparent"
+                  placeholder="11811160064"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Maximum storage space for the local Codex node. Current value: <span className="text-[#6BE4A8] font-medium">{formatBytes(parseInt(storageQuota) || 0)}</span>
+                  {isCustomValue() && (
+                    <span className="ml-2 px-2 py-1 text-xs bg-orange-500/20 text-orange-400 rounded border border-orange-500/30">Custom</span>
+                  )}
+                </p>
+                <div className="mt-3">
+                  <p className="text-xs text-gray-300 mb-2">Quick presets:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <button
+                      onClick={() => handleStorageQuotaChange((1 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(1 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      1 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((5 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(5 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      5 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((10 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(10 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      10 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((25 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(25 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      25 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((50 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(50 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      50 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((100 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(100 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      100 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((250 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(250 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      250 GB
+                    </button>
+                    <button
+                      onClick={() => handleStorageQuotaChange((500 * 1024 * 1024 * 1024).toString())}
+                      className={`px-3 py-2 text-xs rounded-lg transition-colors border ${
+                        isPresetSelected(500 * 1024 * 1024 * 1024) 
+                          ? 'bg-[#6BE4A8]/20 text-[#6BE4A8] border-[#6BE4A8] font-medium' 
+                          : 'bg-black/20 text-white border-gray-600 hover:bg-black/30 hover:border-[#6BE4A8]/50'
+                      }`}
+                    >
+                      500 GB
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 p-3 bg-blue-900/30 border border-blue-500/30 rounded-lg">
+                  <p className="text-xs text-blue-400">
+                    💡 <strong>Tip:</strong> Set a storage quota appropriate for your available disk space. The node will stop accepting new data once this limit is reached.
+                  </p>
+                </div>
+                {connectionStatus === "Found" && (
+                  <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-yellow-400">
+                        ⚠️ <strong>Restart Required:</strong> Changes to storage quota will only take effect after restarting the Codex node.
+                      </p>
+                      <button
+                        onClick={onKillCodex}
+                        disabled={!onKillCodex}
+                        className="ml-3 px-3 py-1 text-xs bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                      >
+                        Restart Now
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

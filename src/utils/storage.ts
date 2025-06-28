@@ -95,5 +95,13 @@ export const storageUtils = {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REMOTE_ENDPOINT);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REMOTE_USERNAME);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REMOTE_PASSWORD);
+  },
+
+  getStorageQuota: (): string | null => {
+    return localStorage.getItem(LOCAL_STORAGE_KEYS.STORAGE_QUOTA);
+  },
+
+  setStorageQuota: (quota: string): void => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.STORAGE_QUOTA, quota);
   }
 }; 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { storageUtils } from '../utils/storage';
 import { validationUtils } from '../utils/validation';
-import { DEFAULT_PORTS } from '../constants';
+import { DEFAULT_PORTS, DEFAULT_STORAGE_QUOTA } from '../constants';
 
 export const useCodexConfig = () => {
   const [dataDirectory, setDataDirectory] = useState<string>("");
@@ -11,6 +11,7 @@ export const useCodexConfig = () => {
   const [listeningPort, setListeningPort] = useState<string>(DEFAULT_PORTS.LISTENING);
   const [apiPort, setApiPort] = useState<string>(DEFAULT_PORTS.API);
   const [autoStartCodex, setAutoStartCodex] = useState<boolean>(true);
+  const [storageQuota, setStorageQuota] = useState<string>(DEFAULT_STORAGE_QUOTA.toString());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Initialize and load saved data directory and ports
@@ -21,12 +22,15 @@ export const useCodexConfig = () => {
       const savedListeningPort = storageUtils.getListeningPort();
       const savedApiPort = storageUtils.getApiPort();
       const savedAutoStartCodex = storageUtils.getAutoStartCodex();
+      const savedStorageQuota = storageUtils.getStorageQuota();
       
       // Debug logging
       console.log('useCodexConfig loading config (trigger:', refreshTrigger, '):', {
         savedDir,
         isDirectoryCurrentlySet: !!savedDir,
-        onboardingComplete: localStorage.getItem('codexOnboardingComplete')
+        onboardingComplete: localStorage.getItem('codexOnboardingComplete'),
+        savedStorageQuota,
+        currentStorageQuota: storageQuota
       });
       
       console.log('Loading auto-start setting:', {
@@ -57,6 +61,10 @@ export const useCodexConfig = () => {
       }
       
       setAutoStartCodex(savedAutoStartCodex);
+      
+      if (savedStorageQuota) {
+        setStorageQuota(savedStorageQuota);
+      }
     };
 
     loadConfig();
@@ -147,6 +155,17 @@ export const useCodexConfig = () => {
     console.log('Saved to localStorage:', localStorage.getItem('codexAutoStartEnabled'));
   };
 
+  const handleStorageQuotaChange = (value: string) => {
+    // Validate that it's a number
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      console.log('Storage quota changing from', storageQuota, 'to', value);
+      setStorageQuota(value);
+      storageUtils.setStorageQuota(value);
+      console.log('Storage quota saved to localStorage:', localStorage.getItem('codexStorageQuota'));
+    }
+  };
+
   const refreshConfig = () => {
     console.log('Manually refreshing config...');
     setRefreshTrigger(prev => prev + 1);
@@ -159,12 +178,14 @@ export const useCodexConfig = () => {
     listeningPort,
     apiPort,
     autoStartCodex,
+    storageQuota,
     handleSelectDirectory,
     handleChangeDirectory,
     handleDiscoveryPortChange,
     handleListeningPortChange,
     handleApiPortChange,
     handleAutoStartCodexChange,
+    handleStorageQuotaChange,
     refreshConfig
   };
 }; 
