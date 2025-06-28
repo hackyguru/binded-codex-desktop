@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiFolder, FiRotateCcw, FiSettings, FiDownload, FiServer, FiWifi, FiMonitor, FiGlobe, FiX } from 'react-icons/fi';
+import { FiFolder, FiRotateCcw, FiSettings, FiDownload, FiServer, FiWifi, FiMonitor, FiGlobe, FiX, FiTrash2 } from 'react-icons/fi';
 import { useCodexConfig } from '../../hooks/useCodexConfig';
 import { useDownloadLocation } from '../../hooks/useDownloadLocation';
 import { useNodeConfig } from '../../hooks/useNodeConfig';
@@ -27,6 +27,10 @@ const categories: CategoryItem[] = [
 
 const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKillCodex }) => {
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('general');
+  const [showClearDataModal, setShowClearDataModal] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+  const [showKillCodexModal, setShowKillCodexModal] = useState(false);
+  const [killCodexConfirmationText, setKillCodexConfirmationText] = useState('');
 
   const {
     dataDirectory,
@@ -104,6 +108,80 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
       500 * 1024 * 1024 * 1024
     ];
     return !presets.some(preset => isPresetSelected(preset));
+  };
+
+  // Handler to clear all app data and preferences
+  const handleClearAppData = () => {
+    setConfirmationText(''); // Reset confirmation text
+    setShowClearDataModal(true);
+  };
+
+  const confirmClearAppData = () => {
+    // Check if user typed "Confirm" correctly
+    if (confirmationText !== 'Confirm') {
+      alert('Please type "Confirm" exactly to proceed with clearing app data.');
+      return;
+    }
+
+    try {
+      // Clear all localStorage data
+      localStorage.clear();
+      
+      // Close modal and reset state
+      setShowClearDataModal(false);
+      setConfirmationText('');
+      
+      // Show success message briefly before reload
+      setTimeout(() => {
+        alert("App data cleared successfully. The application will now restart.");
+        // Reload the page to restart the app with clean state
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Error clearing app data:', error);
+      alert("Error clearing app data. Please try again.");
+      setShowClearDataModal(false);
+      setConfirmationText('');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowClearDataModal(false);
+    setConfirmationText('');
+  };
+
+  const handleKillCodex = () => {
+    setKillCodexConfirmationText(''); // Reset confirmation text
+    setShowKillCodexModal(true);
+  };
+
+  const confirmKillCodex = () => {
+    // Check if user typed "Confirm" correctly
+    if (killCodexConfirmationText !== 'Confirm') {
+      alert('Please type "Confirm" exactly to proceed with killing Codex processes.');
+      return;
+    }
+
+    try {
+      // Close modal and reset state
+      setShowKillCodexModal(false);
+      setKillCodexConfirmationText('');
+      
+      // Call the actual kill function
+      if (onKillCodex) {
+        onKillCodex();
+      }
+    } catch (error) {
+      console.error('Error killing Codex processes:', error);
+      alert("Error killing Codex processes. Please try again.");
+      setShowKillCodexModal(false);
+      setKillCodexConfirmationText('');
+    }
+  };
+
+  const handleCloseKillCodexModal = () => {
+    setShowKillCodexModal(false);
+    setKillCodexConfirmationText('');
   };
 
   const renderGeneralSettings = () => (
@@ -552,12 +630,10 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
             </div>
             <div className="flex items-center ml-4">
               <button
-                onClick={onKillCodex}
-                disabled={!onKillCodex}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                onClick={handleKillCodex}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
               >
-                <FiX className="w-4 h-4 mr-2" />
-                Kill Processes
+                Kill Codex Processes
               </button>
             </div>
           </div>
@@ -574,6 +650,50 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
           <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
             {codexOutput || 'No logs available'}
           </pre>
+        </div>
+      </div>
+
+      {/* Clear App Data */}
+      <div className="bg-black/20 rounded-xl p-6">
+        <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <FiTrash2 className="w-5 h-5 mr-2 text-[#6BE4A8]" />
+          App Data Management
+        </h4>
+        <div className="bg-black/20 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-grow">
+              <h3 className="text-base font-medium text-white">Clear App Local Data</h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Reset all settings, preferences, and cached data to defaults. This will clear:
+              </p>
+              <ul className="text-xs text-gray-400 mt-2 ml-4 space-y-1">
+                <li>• Data directory selection</li>
+                <li>• Port configurations</li>
+                <li>• Storage quota settings</li>
+                <li>• Download location preferences</li>
+                <li>• Recent files history</li>
+                <li>• Remote node configurations</li>
+                <li>• Auto-start preferences</li>
+                <li>• Onboarding completion status</li>
+              </ul>
+              {connectionStatus === "Found" && (
+                <div className="mt-3 p-2 bg-yellow-900/30 border border-yellow-500/30 rounded">
+                  <p className="text-xs text-yellow-400">
+                    ⚠️ <strong>Recommendation:</strong> Stop Codex before clearing data to avoid potential conflicts.
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center ml-4">
+              <button
+                onClick={handleClearAppData}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+              >
+                <FiX className="w-4 h-4 mr-2" />
+                Clear All Data
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -625,6 +745,127 @@ const Settings: React.FC<SettingsProps> = ({ connectionStatus, codexOutput, onKi
           {renderContent()}
         </div>
       </div>
+
+      {/* Clear App Data Confirmation Modal */}
+      {showClearDataModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-black/90 border border-[#6BE4A8]/30 rounded-xl p-6 max-w-md w-full mx-4 backdrop-blur-sm">
+            <div className="flex items-center mb-4">
+              <FiTrash2 className="w-6 h-6 text-red-400 mr-3" />
+              <h3 className="text-lg font-semibold text-white">Clear App Data</h3>
+            </div>
+            <p className="text-gray-300 mb-4">
+              Are you sure you want to clear all app data and preferences?
+            </p>
+            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 mb-4">
+              <p className="text-sm text-red-300 mb-2">This will permanently delete:</p>
+              <ul className="text-xs text-red-200 space-y-1">
+                <li>• All settings and configurations</li>
+                <li>• Recent files history</li>
+                <li>• Remote node credentials</li>
+                <li>• Onboarding completion status</li>
+              </ul>
+            </div>
+            <p className="text-xs text-yellow-400 mb-6">
+              ⚠️ This action cannot be undone. The app will restart after clearing data.
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Type <span className="text-[#6BE4A8] font-semibold">Confirm</span> to proceed:
+              </label>
+              <input
+                type="text"
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder="Type 'Confirm' here..."
+                className="w-full px-3 py-2 bg-black/40 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-[#6BE4A8] transition-all duration-200"
+                autoFocus
+              />
+              {confirmationText && confirmationText !== 'Confirm' && (
+                <p className="text-xs text-red-400 mt-1">
+                  Please type "Confirm" exactly (case-sensitive)
+                </p>
+              )}
+              {confirmationText === 'Confirm' && (
+                <p className="text-xs text-[#6BE4A8] mt-1">
+                  ✓ Confirmation text is correct
+                </p>
+              )}
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCloseModal}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 border border-gray-600 hover:border-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearAppData}
+                disabled={confirmationText !== 'Confirm'}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none disabled:hover:scale-100"
+              >
+                Clear All Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kill Codex Confirmation Modal */}
+      {showKillCodexModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-black/90 border border-[#6BE4A8]/30 rounded-xl p-6 max-w-md w-full mx-4 backdrop-blur-sm">
+            <div className="flex items-center mb-4">
+              <FiX className="w-6 h-6 text-red-400 mr-3" />
+              <h3 className="text-lg font-semibold text-white">Kill Codex Processes</h3>
+            </div>
+            <p className="text-gray-300 mb-4">
+              This will forcefully terminate all running Codex processes. Any ongoing operations will be interrupted.
+            </p>
+            <p className="text-xs text-yellow-400 mb-6">
+              ⚠️ This action will stop all Codex network activity immediately.
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Type <span className="text-[#6BE4A8] font-semibold">Confirm</span> to proceed:
+              </label>
+              <input
+                type="text"
+                value={killCodexConfirmationText}
+                onChange={(e) => setKillCodexConfirmationText(e.target.value)}
+                placeholder="Type 'Confirm' here..."
+                className="w-full px-3 py-2 bg-black/40 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#6BE4A8] focus:border-[#6BE4A8] transition-all duration-200"
+                autoFocus
+              />
+              {killCodexConfirmationText && killCodexConfirmationText !== 'Confirm' && (
+                <p className="text-xs text-red-400 mt-1">
+                  Please type "Confirm" exactly (case-sensitive)
+                </p>
+              )}
+              {killCodexConfirmationText === 'Confirm' && (
+                <p className="text-xs text-[#6BE4A8] mt-1">
+                  ✓ Confirmation text is correct
+                </p>
+              )}
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCloseKillCodexModal}
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 border border-gray-600 hover:border-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmKillCodex}
+                disabled={killCodexConfirmationText !== 'Confirm'}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none disabled:hover:scale-100"
+              >
+                Kill Processes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
