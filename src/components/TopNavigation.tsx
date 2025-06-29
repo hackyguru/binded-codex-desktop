@@ -105,7 +105,9 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
               placeholder="Search CIDs..."
-              className="w-full h-full pl-8 pr-12 bg-[#6BE4A8] text-black placeholder-black border-0 outline-none focus:outline-none focus:ring-0"
+              className={`w-full h-full pl-8 pr-12 text-black placeholder-black border-0 outline-none focus:outline-none focus:ring-0 transition-all duration-200 ${
+                isInputFocused ? 'bg-[#6BE4A8]' : 'bg-[#6BE4A8]/80'
+              }`}
               style={{
                 border: 'none',
                 boxShadow: 'none'

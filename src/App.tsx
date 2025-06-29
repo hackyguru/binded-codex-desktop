@@ -71,7 +71,6 @@ const useConnectionState = (connectionStatus: string): ConnectionState => {
 const usePageRenderer = (
   activePage: string,
   connectionState: ConnectionState,
-  codexState: CodexState,
   apiPort: string,
   searchedCid: string,
   handleSearch: (cid: string) => void,
@@ -107,7 +106,7 @@ const usePageRenderer = (
       case 'NetworkStatus':
         return <NetworkStatus {...commonProps} />;
       case 'Settings':
-        return <Settings {...commonProps} codexOutput={codexState.output} onKillCodex={handleKillCodex} />;
+        return <Settings {...commonProps} onKillCodex={handleKillCodex} />;
       default:
         return <Dashboard {...commonProps} />;
     }
@@ -173,7 +172,7 @@ const App: React.FC = () => {
     setActivePage('Search');
   };
 
-  const renderPage = usePageRenderer(activePage, connectionState, codexState, apiPort, searchedCid, handleSearch, isDirectorySet, refreshConfig, handleKillCodexWithImmediateState);
+  const renderPage = usePageRenderer(activePage, connectionState, apiPort, searchedCid, handleSearch, isDirectorySet, refreshConfig, handleKillCodexWithImmediateState);
 
   // Effects - Only run once on app initialization
   useEffect(() => {
