@@ -255,13 +255,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTE.md) for detailed information on how to get started.
 
+**Quick Start for Contributors:**
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+3. Commit your changes (`git commit -m 'feat: add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+For detailed guidelines on code style, development workflow, and testing, please see [CONTRIBUTE.md](CONTRIBUTE.md).
 
 ## 🔗 Links
 
