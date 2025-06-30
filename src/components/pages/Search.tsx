@@ -4,7 +4,6 @@ import { FaSeedling } from 'react-icons/fa';
 import { useCidInfo, useCodexConfig, useDownloadLocation, useRecentFiles, useNodeFiles, useCodexConnection } from '../../hooks';
 import { LogoSpinner } from '../';
 import { formatBytes } from '../../utils/formatBytes';
-import { download } from '@tauri-apps/plugin-upload';
 import { codexApi } from '../../utils/apiClient';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
@@ -154,39 +153,28 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     return filename || 'unnamed';
   };
 
-  const downloadWithProgress = async (url: string, filename: string, onProgress: (progress: number) => void) => {
+  const downloadWithProgress = async (url: string, filename: string, setProgress: (progress: number) => void) => {
     // Get the configured download path
     const downloadPath = getCurrentDownloadPath();
-    const safeFilename = getSafeFilename(filename);
-    const fullPath = `${downloadPath}/${safeFilename}`;
+    const fullPath = `${downloadPath}/${filename}`;
     
     console.log('Downloading to:', fullPath);
     
-    // Start with 0% progress
-    onProgress(0);
-    
-    // Simulate progress while downloading
-    let currentProgress = 0;
-    const progressInterval = setInterval(() => {
-      if (currentProgress < 90) {
-        currentProgress += Math.random() * 10; // Increment by 0-10%
-        onProgress(Math.min(currentProgress, 90));
-      }
-    }, 200); // Update every 200ms
-    
     try {
-      // Use Tauri download plugin with the original URL and full path
-      await download(url, fullPath);
+      // Extract the endpoint from the URL for the new API method
+      // The url comes in as the full URL, we need to extract the endpoint part
+      const urlObj = new URL(url);
+      const endpoint = urlObj.pathname.replace('/api/codex/v1', '');
       
-      // Clear the interval and set to 100%
-      clearInterval(progressInterval);
-      onProgress(100);
+      // Use the new codexApi downloadFile method which handles authentication for remote nodes
+      await codexApi.downloadFile(endpoint, fullPath, apiPort);
+      
+      // Set progress to 100% when completed
+      setProgress(100);
       
       console.log('File saved to:', fullPath);
     } catch (error) {
-      // Clear the interval on error
-      clearInterval(progressInterval);
-      onProgress(0);
+      console.error('Download failed:', error);
       throw error;
     }
   };

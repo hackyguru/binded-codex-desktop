@@ -14,7 +14,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) => {
       {/* Logo/Avatar */}
       <div className="flex items-center justify-center h-12">
         <img
-          src="src/assets/logo.png"
+          src="/logo.png"
           alt="App Logo"
           className="w-12 h-12"
         />

@@ -53,7 +53,7 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
       return (
         <div className="flex flex-col items-center justify-center h-full text-gray-400">
           <img
-            src="src/assets/logo.png"
+            src="/logo.png"
             alt="Loading"
             className="w-16 h-16 animate-pulse mb-4"
           />

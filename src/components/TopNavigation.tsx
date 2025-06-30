@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { IoIosPower } from 'react-icons/io';
 import { 
   FiDownload, 
-  FiSearch
+  FiSearch,
+  FiServer,
+  FiHardDrive
 } from 'react-icons/fi';
+import { useNodeConfig } from '../hooks/useNodeConfig';
 
 interface TopNavigationProps {
   isCodexRunning: boolean;
@@ -27,6 +30,7 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
   const [searchCid, setSearchCid] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isKilling, setIsKilling] = useState(false);
+  const { nodeType, remoteConfig } = useNodeConfig();
 
   // Function to truncate CID for display
   const truncateCid = (cid: string) => {
@@ -125,8 +129,27 @@ const TopNavigation: React.FC<TopNavigationProps> = ({
         </form>
       </div>
 
-      {/* Power Button - Right Side */}
+      {/* Node Type Indicator & Power Button - Right Side */}
       <div className="flex gap-3 items-center">
+        {/* Node Type Indicator */}
+        <div 
+          className="flex items-center gap-2 px-3 py-1 rounded-lg bg-black/20 text-white text-xs"
+          title={nodeType === 'remote' ? `Remote: ${remoteConfig.endpoint}` : 'Local Node'}
+        >
+          {nodeType === 'remote' ? (
+            <>
+              <FiServer className="w-3 h-3 text-[#6BE4A8]" />
+              <span>Remote</span>
+            </>
+          ) : (
+            <>
+              <FiHardDrive className="w-3 h-3 text-[#6BE4A8]" />
+              <span>Local</span>
+            </>
+          )}
+        </div>
+
+        {/* Power Button */}
         <button 
           onClick={handlePowerButtonClick}
           disabled={isButtonDisabled}

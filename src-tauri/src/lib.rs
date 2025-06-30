@@ -3,6 +3,9 @@ use std::process::Command;
 use std::collections::HashMap;
 use tauri::{TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_http::reqwest;
+use std::path::Path;
+use std::fs::File;
+use std::io::Write;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -97,6 +100,7 @@ async fn upload_file(
     file_data: Vec<u8>,
     content_type: String,
     filename: String,
+    headers: Option<HashMap<String, String>>,
 ) -> Result<serde_json::Value, String> {
     let client = reqwest::Client::new();
     
@@ -107,6 +111,13 @@ async fn upload_file(
         .header("Content-Type", content_type)
         .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
         .body(file_data);
+
+    // Add additional headers (like authentication)
+    if let Some(additional_headers) = headers {
+        for (key, value) in additional_headers {
+            request_builder = request_builder.header(&key, &value);
+        }
+    }
 
     // Make the request
     let response = request_builder
@@ -144,6 +155,57 @@ async fn upload_file(
     }))
 }
 
+#[tauri::command]
+async fn download_file(
+    url: String,
+    file_path: String,
+    headers: HashMap<String, String>,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::new();
+    
+    let mut request_builder = client.get(&url);
+    
+    // Add headers (including authentication)
+    for (key, value) in headers {
+        request_builder = request_builder.header(&key, &value);
+    }
+
+    // Make the request
+    let response = request_builder
+        .send()
+        .await
+        .map_err(|e| format!("Download request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Download failed with status: {}", response.status()));
+    }
+
+    // Get response bytes
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response bytes: {}", e))?;
+
+    // Create the directory if it doesn't exist
+    if let Some(parent) = Path::new(&file_path).parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    // Write to file
+    let mut file = File::create(&file_path)
+        .map_err(|e| format!("Failed to create file: {}", e))?;
+    
+    file.write_all(&bytes)
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    Ok(serde_json::json!({
+        "success": true,
+        "path": file_path,
+        "size": bytes.len()
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -153,7 +215,7 @@ pub fn run() {
         .plugin(tauri_plugin_upload::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_http::init())
-        .invoke_handler(tauri::generate_handler![greet, execute_command, http_request, upload_file])
+        .invoke_handler(tauri::generate_handler![greet, execute_command, http_request, upload_file, download_file])
         .setup(|app| {
             let win_builder =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::default())

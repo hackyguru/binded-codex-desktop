@@ -271,7 +271,7 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
             {isGenerating && (
               <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-lg p-2">
                 <img
-                  src="src/assets/logo.png"
+                  src="/logo.png"
                   alt="Loading"
                   className="w-4 h-4 animate-pulse"
                 />
@@ -282,7 +282,7 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             <div className="text-center">
               <img
-                src="src/assets/logo.png"
+                src="/logo.png"
                 alt="Loading"
                 className="w-8 h-8 mx-auto mb-2 animate-pulse"
               />
@@ -362,7 +362,7 @@ const WorldMap = ({ geoData }: { geoData: Record<string, any> }) => {
               {isLoading && (
                 <div className="flex items-center space-x-2 text-sm text-gray-400">
                   <img
-                    src="src/assets/logo.png"
+                    src="/logo.png"
                     alt="Loading"
                     className="w-4 h-4 animate-pulse"
                   />

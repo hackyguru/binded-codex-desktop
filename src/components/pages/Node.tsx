@@ -7,7 +7,6 @@ import { useCodexConfig } from '../../hooks/useCodexConfig';
 import { useCodexConnection } from '../../hooks/useCodexConnection';
 import FileCard from '../FileCard';
 import { formatBytes } from '../../utils/formatBytes';
-import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../../hooks/useDownloadLocation';
 import { codexApi } from '../../utils/apiClient';
 
@@ -62,8 +61,13 @@ const Node: React.FC<NodeProps> = ({
     }));
     
     try {
-      // Use Tauri download plugin with the original URL and full path
-      await download(url, fullPath);
+      // Extract the endpoint from the URL for the new API method
+      // The url comes in as the full URL, we need to extract the endpoint part
+      const urlObj = new URL(url);
+      const endpoint = urlObj.pathname.replace('/api/codex/v1', '');
+      
+      // Use the new codexApi downloadFile method which handles authentication for remote nodes
+      await codexApi.downloadFile(endpoint, fullPath, finalApiPort);
       
       setDownloadStates(prev => ({
         ...prev,
@@ -120,7 +124,7 @@ const Node: React.FC<NodeProps> = ({
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
         <img
-          src="src/assets/logo.png"
+          src="/logo.png"
           alt="Loading"
           className="w-12 h-12 animate-pulse mb-4"
         />

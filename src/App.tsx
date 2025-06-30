@@ -21,11 +21,7 @@ interface ConnectionState {
   setImmediateDisconnected: () => void;
 }
 
-interface CodexState {
-  isRunning: boolean;
-  isStarted: boolean;
-  output: string;
-}
+
 
 // Custom hook for connection state management
 const useConnectionState = (connectionStatus: string): ConnectionState => {
@@ -136,7 +132,6 @@ const App: React.FC = () => {
   } = useCodexConfig();
 
   const {
-    codexOutput,
     isCodexRunning,
     codexChild,
     handleRunCodex,
@@ -148,11 +143,6 @@ const App: React.FC = () => {
 
   // Custom hooks
   const connectionState = useConnectionState(connectionStatus);
-  const codexState: CodexState = {
-    isRunning: isCodexRunning,
-    isStarted: codexChild !== null,
-    output: codexOutput
-  };
 
   // Event handlers
   const handleRunCodexWithConfig = () => {

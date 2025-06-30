@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiDownload, FiRotateCcw, FiFile, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { download } from '@tauri-apps/plugin-upload';
 import { useDownloadLocation } from '../hooks/useDownloadLocation';
 import { useNodeFiles } from '../hooks/useNodeFiles';
 import { useRecentFiles } from '../hooks/useRecentFiles';
@@ -161,24 +160,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
         [cid]: 'downloading'
       }));
 
-      const downloadUrl = codexApi.buildUrl(`/data/${cid}/network/stream`, finalApiPort);
-      console.log(`Downloading file from: ${downloadUrl}`);
-
       const downloadsPath = getCurrentDownloadPath();
       const safeFilename = getSafeFilename(fileName);
       const filePath = `${downloadsPath}/${safeFilename}`;
 
-      console.log(`Saving file to: ${filePath}`);
+      console.log(`Downloading file ${cid} to: ${filePath}`);
 
-      await download(
-        downloadUrl,
-        filePath,
-        ({ progress, total }: { progress: number; total: number }) => {
-          const progressPercentage = Math.round((progress / total) * 100);
-          console.log(`Downloaded ${progress} of ${total} bytes (${progressPercentage}%)`);
-        },
-        new Map([['Accept', '*/*']])
-      );
+      // Use the new codexApi downloadFile method which handles authentication for remote nodes
+      await codexApi.downloadFile(`/data/${cid}/network/stream`, filePath, finalApiPort);
 
       setDownloadStatus(prev => ({
         ...prev,

@@ -49,7 +49,7 @@ export const LogoSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg'; text?: string }>
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <img
-        src="src/assets/logo.png"
+        src="/logo.png"
         alt="Loading"
         className={`${sizeClasses[size]} animate-spin`}
         style={{

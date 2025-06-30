@@ -74,6 +74,12 @@ const HealthCheckCard: React.FC<HealthCheckCardProps> = ({ isConnected, apiPort 
   };
 
   const checkPortForwarding = async (): Promise<boolean> => {
+    // Only check port forwarding for local nodes
+    if (nodeType !== 'local') {
+      console.log('Skipping port forwarding check - not in local mode');
+      return true; // N/A for remote nodes
+    }
+
     try {
       // First check if Codex discovery service is running locally
       const localResponse = await fetch(`http://localhost:${discoveryPort}`, { 

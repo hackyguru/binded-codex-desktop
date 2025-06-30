@@ -62,7 +62,7 @@ const Install: React.FC<InstallProps> = ({ onConfigRefresh }) => {
         {/* Content overlay */}
         <div className="relative z-10 bg-black/80 border border-[#6BE4A8]/30 rounded-xl p-8 max-w-md mx-auto backdrop-blur-sm">
           <img
-            src="src/assets/logo.png"
+            src="/logo.png"
             alt="Codex Desktop Logo"
             className="w-12 h-12 mx-auto mb-4 animate-pulse"
           />
@@ -125,7 +125,7 @@ const Install: React.FC<InstallProps> = ({ onConfigRefresh }) => {
           <div className="text-center h-full flex flex-col justify-center">
             <div className="flex items-center justify-center mx-auto mb-6">
               <img
-                src="src/assets/logo.png"
+                src="/logo.png"
                 alt="Codex Desktop Logo"
                 className="w-20 h-20"
               />
