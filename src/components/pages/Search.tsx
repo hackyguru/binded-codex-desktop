@@ -211,21 +211,16 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
 
   const handleStopSeeding = async () => {
     if (!fileInfo) return;
+    
+    setLastAction('stop');
     setSeedState('downloading');
     setSeedProgress(0);
-    setLastAction('stop');
-    
-    // Immediately update the seeding state to false when starting stop operation
-    console.log('Starting stop seeding - setting currentSeededState to false immediately');
     setCurrentSeededState(false);
     
     try {
-      // Remove the file from local node storage
-      const deleteUrl = codexApi.buildUrl(`/data/${fileInfo.cid}`, apiPort);
-      console.log('Stop seeding URL:', deleteUrl);
-      const deleteResponse = await fetch(deleteUrl, {
-        method: 'DELETE',
-      });
+      // Remove the file from local node storage using the API client
+      console.log('Stop seeding - removing file from local node');
+      const deleteResponse = await codexApi.delete(`/data/${fileInfo.cid}`, apiPort);
       
       if (!deleteResponse.ok) {
         throw new Error(`Failed to stop seeding file. Status: ${deleteResponse.status}`);
@@ -254,19 +249,16 @@ const Search: React.FC<SearchProps> = ({ cid }) => {
     setLastAction('seed');
     
     try {
-      // Step 1: Seed the file to local node
-      const seedUrl = codexApi.buildUrl(`/data/${fileInfo.cid}/network`, apiPort);
-      console.log('Seed URL:', seedUrl);
-      const seedResponse = await fetch(seedUrl, {
-        method: 'POST',
-      });
+      // Step 1: Seed the file to local node using the API client
+      console.log('Seeding file to local node');
+      const seedResponse = await codexApi.post(`/data/${fileInfo.cid}/network`, apiPort);
       
       if (!seedResponse.ok) {
         throw new Error(`Failed to seed file to local node. Status: ${seedResponse.status}`);
       }
       
       // Step 2: Download the file from local node to user's computer
-              const downloadUrl = codexApi.buildUrl(`/data/${fileInfo.cid}/stream`, apiPort);
+      const downloadUrl = codexApi.buildUrl(`/data/${fileInfo.cid}/stream`, apiPort);
       console.log('Download URL:', downloadUrl);
       
       const safeFilename = getSafeFilename(fileInfo.manifest.filename);

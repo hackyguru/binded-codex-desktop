@@ -5,11 +5,13 @@ import {
   FiMoreHorizontal,
   FiCheck,
   FiPlayCircle,
-  FiSave
+  FiSave,
+  FiX
 } from 'react-icons/fi';
 import { FaSeedling } from 'react-icons/fa';
 
 type DownloadState = 'downloading' | 'completed' | 'error' | null;
+type UploadState = 'pending' | 'uploading' | 'success' | 'error' | 'cancelled';
 
 interface FileCardProps {
   fileName: string | null;
@@ -32,6 +34,10 @@ interface FileCardProps {
   showSeedButton?: boolean;
   // Info button prop
   onInfo?: () => void;
+  // Upload cancel props
+  uploadState?: UploadState;
+  onCancelUpload?: () => void;
+  uploadError?: string;
 }
 
 const FileCard: React.FC<FileCardProps> = ({
@@ -50,7 +56,10 @@ const FileCard: React.FC<FileCardProps> = ({
   seedToNodeState,
   isSeededInNode = false,
   showSeedButton = false,
-  onInfo
+  onInfo,
+  uploadState,
+  onCancelUpload,
+  uploadError
 }) => {
   const [isCopied, setIsCopied] = useState(false);
 
@@ -95,6 +104,91 @@ const FileCard: React.FC<FileCardProps> = ({
     </button>
   );
 
+  // Render upload status and actions
+  const renderUploadControls = () => {
+    if (!uploadState) return null;
+
+    switch (uploadState) {
+      case 'uploading':
+        return (
+          <div className="flex items-center gap-3 p-4 flex-shrink-0 min-w-[120px]">
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={onCancelUpload}
+                className="w-9 h-9 bg-red-500 clip-path-hexagon flex items-center justify-center text-white hover:bg-red-600 transition-colors flex-shrink-0"
+                title="Cancel upload"
+              >
+                <FiX size={14} />
+              </button>
+              <p className="text-gray-400 text-xs font-bold text-center mt-1">CANCEL</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 bg-[#6BE4A8]/20 clip-path-hexagon flex items-center justify-center">
+                <img src="/logo.png" alt="Uploading" className="w-4 h-4 animate-pulse" />
+              </div>
+              <p className="text-[#6BE4A8] text-xs font-bold text-center mt-1">UPLOADING</p>
+            </div>
+          </div>
+        );
+      
+      case 'success':
+        return (
+          <div className="flex items-center gap-3 p-4 flex-shrink-0 min-w-[120px]">
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 bg-[#6BE4A8] clip-path-hexagon flex items-center justify-center text-black">
+                <FiCheck size={14} />
+              </div>
+              <p className="text-[#6BE4A8] text-xs font-bold text-center mt-1">SUCCESS</p>
+            </div>
+          </div>
+        );
+      
+      case 'error':
+        return (
+          <div className="flex items-center gap-3 p-4 flex-shrink-0 min-w-[120px]">
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 bg-red-500 clip-path-hexagon flex items-center justify-center text-white">
+                <FiX size={14} />
+              </div>
+              <p className="text-red-400 text-xs font-bold text-center mt-1">ERROR</p>
+              {uploadError && (
+                <p className="text-red-300 text-xs text-center mt-1 max-w-[100px] truncate" title={uploadError}>
+                  {uploadError}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      
+      case 'cancelled':
+        return (
+          <div className="flex items-center gap-3 p-4 flex-shrink-0 min-w-[120px]">
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 bg-gray-500 clip-path-hexagon flex items-center justify-center text-white">
+                <FiX size={14} />
+              </div>
+              <p className="text-gray-400 text-xs font-bold text-center mt-1">CANCELLED</p>
+            </div>
+          </div>
+        );
+      
+      case 'pending':
+        return (
+          <div className="flex items-center gap-3 p-4 flex-shrink-0 min-w-[120px]">
+            <div className="flex flex-col items-center">
+              <div className="w-9 h-9 bg-gray-600 clip-path-hexagon flex items-center justify-center text-white">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              </div>
+              <p className="text-gray-400 text-xs font-bold text-center mt-1">PENDING</p>
+            </div>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="bg-[#2D2D2D] rounded-2xl overflow-hidden flex items-stretch min-h-[96px] min-w-0 w-full">
       {/* Left Content Section */}
@@ -122,7 +216,10 @@ const FileCard: React.FC<FileCardProps> = ({
       </div>
 
       {/* Action Buttons */}
-      {onLeech && onSeed ? (
+      {uploadState ? (
+        // Upload controls - show upload status and cancel button
+        renderUploadControls()
+      ) : onLeech && onSeed ? (
         // Search page layout - no divider
         <div className="flex items-center gap-3 p-4 flex-shrink-0 min-w-[200px]">
           <button

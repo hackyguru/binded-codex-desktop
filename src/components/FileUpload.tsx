@@ -18,9 +18,11 @@ interface FileItem {
   name: string;
   size: number;
   type: string;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'cancelled';
   cid?: string;
   error?: string;
+  abortController?: AbortController;
+  progress?: number;
 }
 
 interface FileUploadProps {
@@ -108,12 +110,21 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
   };
 
   const uploadFile = async (file: File, fileItem: FileItem) => {
+    // Create AbortController for this upload
+    const abortController = new AbortController();
+    
     try {
+      // Update file item with abort controller and uploading status
       setSessionFiles(prev => prev.map(f =>
-        f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
+        f.id === fileItem.id ? { 
+          ...f, 
+          status: 'uploading' as const, 
+          abortController,
+          progress: 0 
+        } : f
       ));
 
-      const response = await codexApi.uploadFile('/data', finalApiPort, file);
+      const response = await codexApi.uploadFile('/data', finalApiPort, file, abortController);
 
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
@@ -122,7 +133,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       const cid = await response.text();
       
       setSessionFiles(prev => prev.map(f =>
-        f.id === fileItem.id ? { ...f, status: 'success' as const, cid } : f
+        f.id === fileItem.id ? { 
+          ...f, 
+          status: 'success' as const, 
+          cid,
+          progress: 100,
+          abortController: undefined // Clear the controller when done
+        } : f
       ));
 
       // Add to recent files
@@ -137,10 +154,35 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
       // Refresh the list of files from the node
       refetchNodeFiles();
 
-    } catch (error) {
-      setSessionFiles(prev => prev.map(f =>
-        f.id === fileItem.id ? { ...f, status: 'error' as const, error: error instanceof Error ? error.message : 'Upload failed' } : f
-      ));
+    } catch (error: any) {
+      // Handle different error types
+      if (error.name === 'AbortError' || error.message?.includes('cancelled')) {
+        setSessionFiles(prev => prev.map(f =>
+          f.id === fileItem.id ? { 
+            ...f, 
+            status: 'cancelled' as const,
+            abortController: undefined // Clear the controller
+          } : f
+        ));
+      } else {
+        setSessionFiles(prev => prev.map(f =>
+          f.id === fileItem.id ? { 
+            ...f, 
+            status: 'error' as const, 
+            error: error instanceof Error ? error.message : 'Upload failed',
+            abortController: undefined // Clear the controller
+          } : f
+        ));
+      }
+    }
+  };
+
+  // Function to cancel an upload
+  const cancelUpload = (fileId: string) => {
+    const fileItem = sessionFiles.find(f => f.id === fileId);
+    if (fileItem?.abortController) {
+      console.log('Cancelling upload for file:', fileItem.name);
+      fileItem.abortController.abort();
     }
   };
 
@@ -384,7 +426,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ apiPort = '8080', isConnected }
                       fileName={file.name}
                       fileType={getFileExtension(file.name)}
                       fileSize={formatFileSize(file.size)}
-                      progress={file.status === 'uploading' ? 50 : 0}
+                      progress={file.progress || (file.status === 'uploading' ? 50 : 0)}
+                      uploadState={file.status}
+                      onCancelUpload={() => cancelUpload(file.id)}
+                      uploadError={file.error}
                     />
                   </motion.div>
                 ))}

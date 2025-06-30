@@ -237,7 +237,7 @@ export class CodexApiClient {
     }
   }
 
-  public async uploadFile(endpoint: string, file: File): Promise<Response> {
+  public async uploadFile(endpoint: string, file: File, abortController?: AbortController): Promise<Response> {
     const url = this.buildUrl(endpoint);
     
     console.log(`File Upload: POST ${url}`);
@@ -256,13 +256,37 @@ export class CodexApiClient {
         // Get authentication headers
         const headers = this.getAuthHeaders();
         
-        const result = await invoke('upload_file', {
+        // For remote uploads, we'll use a Promise that can be cancelled
+        const uploadPromise = invoke('upload_file', {
           url,
           fileData,
           contentType: file.type || 'application/octet-stream',
           filename: file.name,
           headers, // Pass authentication headers
-        }) as any;
+        }) as Promise<any>;
+
+        // Create a cancellable promise
+        const cancellablePromise = new Promise<any>((resolve, reject) => {
+          if (abortController?.signal.aborted) {
+            reject(new DOMException('Upload cancelled', 'AbortError'));
+            return;
+          }
+
+          const abortHandler = () => {
+            reject(new DOMException('Upload cancelled', 'AbortError'));
+          };
+
+          abortController?.signal.addEventListener('abort', abortHandler);
+
+          uploadPromise
+            .then(resolve)
+            .catch(reject)
+            .finally(() => {
+              abortController?.signal.removeEventListener('abort', abortHandler);
+            });
+        });
+
+        const result = await cancellablePromise;
 
         // Create a Response-like object from the Tauri command result
         return new Response(
@@ -284,12 +308,19 @@ export class CodexApiClient {
           },
           body: file,
           mode: 'cors',
+          signal: abortController?.signal, // Add abort signal for local uploads
         });
 
         console.log(`File Upload Response: ${response.status} ${response.statusText}`);
         return response;
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Handle abort error specifically
+      if (error.name === 'AbortError' || error.message?.includes('cancelled')) {
+        console.log('File upload cancelled');
+        throw new DOMException('Upload cancelled by user', 'AbortError');
+      }
+      
       console.error('File Upload failed:', error);
       console.error('URL:', url);
       
@@ -388,6 +419,47 @@ export const debugApiClientConfig = (apiPort: string = '8080') => {
   return config;
 };
 
+// Enhanced debug utility to test all API methods with current configuration
+export const testAllApiMethods = async (apiPort: string = '8080') => {
+  console.log('🧪 Testing all API methods with current configuration...');
+  
+  const config = debugApiClientConfig(apiPort);
+  
+  const testResults = {
+    buildUrl: {
+      get: codexApi.buildUrl('/debug/info', apiPort),
+      post: codexApi.buildUrl('/data/upload', apiPort),
+      delete: codexApi.buildUrl('/data/test', apiPort),
+      download: codexApi.buildUrl('/data/test/stream', apiPort)
+    },
+    nodeType: config.nodeType,
+    remoteEndpoint: config.remoteEndpoint,
+    allUrlsPointToCorrectEndpoint: true
+  };
+  
+  // Verify all URLs point to the correct endpoint based on node type
+  Object.values(testResults.buildUrl).forEach(url => {
+    if (config.nodeType === 'remote') {
+      if (url.includes('localhost')) {
+        testResults.allUrlsPointToCorrectEndpoint = false;
+        console.error('❌ ERROR: Found localhost URL in remote mode:', url);
+      }
+    } else {
+      if (!url.includes('localhost')) {
+        testResults.allUrlsPointToCorrectEndpoint = false;
+        console.error('❌ ERROR: Found non-localhost URL in local mode:', url);
+      }
+    }
+  });
+  
+  if (testResults.allUrlsPointToCorrectEndpoint) {
+    console.log('✅ All API URLs correctly point to the configured endpoint');
+  }
+  
+  console.log('🧪 Test Results:', testResults);
+  return testResults;
+};
+
 // Convenience functions for one-off requests
 // Note: The apiPort parameter is only used for local nodes. For remote nodes, 
 // the remote endpoint from settings is used instead.
@@ -407,9 +479,9 @@ export const codexApi = {
     return client.delete(endpoint, options);
   },
 
-  uploadFile: (endpoint: string, apiPort: string, file: File) => {
+  uploadFile: (endpoint: string, apiPort: string, file: File, abortController?: AbortController) => {
     const client = createApiClient(apiPort);
-    return client.uploadFile(endpoint, file);
+    return client.uploadFile(endpoint, file, abortController);
   },
 
   buildUrl: (endpoint: string, apiPort: string) => {
@@ -422,6 +494,7 @@ export const codexApi = {
     return client.downloadFile(endpoint, filePath);
   },
 
-  // Debug utility
-  debugConfig: debugApiClientConfig
+  // Debug utilities
+  debugConfig: debugApiClientConfig,
+  testAllMethods: testAllApiMethods
 }; 
